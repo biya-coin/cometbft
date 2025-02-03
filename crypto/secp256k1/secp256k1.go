@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"golang.org/x/crypto/ripemd160" //nolint: gosec,staticcheck // necessary for Bitcoin address format
 
