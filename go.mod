@@ -1,7 +1,6 @@
 module github.com/cometbft/cometbft
 
-go 1.23
-toolchain go1.23.7
+go 1.24
 
 require (
 	github.com/BurntSushi/toml v1.4.0
@@ -143,6 +142,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )
+
+replace github.com/cometbft/cometbft/api => ./api
 
 retract (
 	// a regression was introduced
