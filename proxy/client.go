@@ -69,6 +69,30 @@ func (c *connSyncLocalClientCreator) NewABCIClient() (abcicli.Client, error) {
 	return abcicli.NewLocalClient(nil, c.app), nil
 }
 
+// -----------------------------------------------------------------------------
+// most advanced local client creator with a more complex concurrency model
+// than the other local client creators - all concurrency is assumed to be
+// handled by the application
+
+type unsyncLocalClientCreator struct {
+	app types.Application
+}
+
+// NewUnsyncLocalClientCreator returns a [ClientCreator] that is fully
+// unsynchronized, meaning that all synchronization must be handled by the
+// application. This is an advanced type of client creator, and requires
+// special care on the application side to ensure that consensus concurrency is
+// not violated.
+func NewUnsyncLocalClientCreator(app types.Application) ClientCreator {
+	return &unsyncLocalClientCreator{
+		app: app,
+	}
+}
+
+func (c *unsyncLocalClientCreator) NewABCIClient() (abcicli.Client, error) {
+	return abcicli.NewUnsyncLocalClient(c.app), nil
+}
+
 //---------------------------------------------------------------
 // remote proxy opens new connections to an external app process
 
