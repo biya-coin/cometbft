@@ -41,6 +41,7 @@ const (
 	DefaultAddrBookName = "addrbook.json"
 
 	MempoolTypeFlood = "flood"
+	MempoolTypeProxy = "proxy"
 	MempoolTypeNop   = "nop"
 )
 
