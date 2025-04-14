@@ -49,6 +49,7 @@ const (
 	v2 = "v2"
 
 	MempoolTypeFlood = "flood"
+	MempoolTypeProxy = "proxy"
 	MempoolTypeNop   = "nop"
 )
 

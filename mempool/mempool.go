@@ -181,3 +181,20 @@ type Iterator interface {
 	// WaitNextCh returns a channel on which to wait for the next available entry.
 	WaitNextCh() <-chan Entry
 }
+
+// MempoolTx defines the interface for a transaction in the mempool
+// It provides methods to access transaction properties and sender information
+type MempoolTx interface {
+	Height() int64
+	GasWanted() int64
+	Tx() types.Tx
+	IsSender(peerID p2p.ID) bool
+	AddSender(peerID p2p.ID) bool
+}
+
+// TxBroadcastStream defines the interface for streaming transactions to broadcast.
+// It provides a channel that will receive transactions to be broadcasted to peers.
+type TxBroadcastStream interface {
+	// GetTxChannel returns a channel that will receive transactions to broadcast.
+	GetTxChannel() <-chan MempoolTx
+}
