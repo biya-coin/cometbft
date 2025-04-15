@@ -55,6 +55,8 @@ type CListMempool struct {
 
 	logger  log.Logger
 	metrics *Metrics
+
+	recheckCbMux cmtsync.Mutex
 }
 
 var _ Mempool = &CListMempool{}
@@ -478,6 +480,8 @@ func (mem *CListMempool) resCbFirstTime(
 // The case where the app checks the tx for the first time is handled by the
 // resCbFirstTime callback.
 func (mem *CListMempool) resCbRecheck(tx types.Tx, res *abci.ResponseCheckTx) {
+	mem.recheckCbMux.Lock()
+	defer mem.recheckCbMux.Unlock()
 	// Check whether tx is still in the list of transactions that can be rechecked.
 	if !mem.recheck.findNextEntryMatching(&tx) {
 		// Reached the end of the list and didn't find a matching tx; rechecking has finished.
