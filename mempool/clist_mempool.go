@@ -626,9 +626,9 @@ func (mem *CListMempool) Update(
 	}
 
 	// Recheck txs left in the mempool to remove them if they became invalid in the new state.
-	if mem.config.Recheck {
-		mem.recheckTxs()
-	}
+	//if mem.config.Recheck {
+	mem.recheckTxs()
+	//}
 
 	// Notify if there are still txs left in the mempool.
 	if mem.Size() > 0 {
@@ -645,11 +645,13 @@ func (mem *CListMempool) Update(
 // recheckTxs sends all transactions in the mempool to the app for re-validation. When the function
 // returns, all recheck responses from the app have been processed.
 func (mem *CListMempool) recheckTxs() {
-	mem.logger.Debug("recheck txs", "height", mem.height.Load(), "num-txs", mem.Size())
+	mem.logger.Info("recheck txs", "height", mem.height.Load(), "num-txs", mem.Size())
 
 	if mem.Size() <= 0 {
 		return
 	}
+
+	startTs := time.Now()
 
 	mem.recheck.init(mem.txs.Front(), mem.txs.Back())
 
@@ -685,7 +687,7 @@ func (mem *CListMempool) recheckTxs() {
 	if n := mem.recheck.numPendingTxs.Load(); n > 0 {
 		mem.logger.Error("not all txs were rechecked", "not-rechecked", n)
 	}
-	mem.logger.Debug("done rechecking txs", "height", mem.height.Load(), "num-txs", mem.Size())
+	mem.logger.Info("done rechecking txs", "height", mem.height.Load(), "num-txs", mem.Size(), "duration", time.Since(startTs).String())
 }
 
 // The cursor and end pointers define a dynamic list of transactions that could be rechecked. The
