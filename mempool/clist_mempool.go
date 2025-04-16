@@ -442,6 +442,8 @@ func (mem *CListMempool) resCbRecheck(tx types.Tx, res *abci.ResponseCheckTx) {
 		return
 	}
 
+	fmt.Printf("✅ cb %x: %d\n", string(tx.Hash()), res.Code)
+
 	var postCheckErr error
 	if mem.postCheck != nil {
 		postCheckErr = mem.postCheck(tx, res)
@@ -453,6 +455,7 @@ func (mem *CListMempool) resCbRecheck(tx types.Tx, res *abci.ResponseCheckTx) {
 		if err := mem.RemoveTxByKey(tx.Key()); err != nil {
 			mem.logger.Debug("Transaction could not be removed from mempool", "err", err)
 		}
+		fmt.Printf("🐖 removed %x\n", string(tx.Hash()))
 		if !mem.config.KeepInvalidTxsInCache {
 			mem.cache.Remove(tx)
 			mem.metrics.EvictedTxs.Add(1)
@@ -615,6 +618,7 @@ func (mem *CListMempool) recheckTxs() {
 	// because this function has the lock (via Update and Lock).
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		tx := e.Value.(*mempoolTx).tx
+		fmt.Println(mem.recheck.numPendingTxs.Add(1))
 		waitResponse := &waitRecheckTxResponse{
 			tx:     tx,
 			waitCb: make(chan *abci.ResponseCheckTx),
@@ -645,6 +649,7 @@ func (mem *CListMempool) recheckTxs() {
 }
 
 func (mem *CListMempool) recheckTxAsync(waitResponse *waitRecheckTxResponse) {
+	fmt.Printf("🦀recheck-Async %x\n", string(waitResponse.tx.Hash()))
 	// Send a CheckTx request to the app. If we're using a sync client, the resCbRecheck
 	// callback will be called right after receiving the response.
 	reqRes, err := mem.proxyAppConn.CheckTxAsync(context.TODO(), &abci.RequestCheckTx{
@@ -658,6 +663,7 @@ func (mem *CListMempool) recheckTxAsync(waitResponse *waitRecheckTxResponse) {
 }
 
 func (mem *CListMempool) recheckTxSync(waitResponse *waitRecheckTxResponse) {
+	fmt.Printf("‼️recheck-sync %x\n", string(waitResponse.tx.Hash()))
 	// Send a CheckTx request to the app
 	res, _ := mem.proxyAppConn.CheckTx(context.TODO(), &abci.RequestCheckTx{
 		Tx:   waitResponse.tx,
@@ -703,6 +709,7 @@ func (mem *CListMempool) queueForRecheckTxSync(waitResponse *waitRecheckTxRespon
 }
 
 func (mem *CListMempool) reRecheck() {
+	fmt.Println("=== reRecheck ===")
 	mem.recheck.numPendingTxs.Add(int32(mem.recheck.reRecheckQueue.Len()))
 	for iter := mem.recheck.reRecheckQueue.Front(); iter != nil; iter = iter.Next() {
 		waitResponse := iter.Value.(*waitRecheckTxResponse)
@@ -715,13 +722,17 @@ func (mem *CListMempool) waitForRecheckCallbacks() {
 	for _, waitResponse := range mem.recheck.responseWaitQueue {
 		res := <-waitResponse.waitCb
 		if res == nil {
+			fmt.Printf("⚠️ cb %x\n", string(waitResponse.tx.Hash()))
 			mem.queueForRecheckTxSync(waitResponse)
 		} else {
 			mem.resCbRecheck(waitResponse.tx, res)
 		}
 
 		if left := mem.recheck.numPendingTxs.Add(-1); left == 0 {
+			fmt.Println(left)
 			mem.reRecheck()
+		} else {
+			fmt.Println(left)
 		}
 	}
 }
@@ -756,6 +767,7 @@ func newRecheck() *recheck {
 }
 
 func (rc *recheck) init(first, last *clist.CElement) {
+	fmt.Println("!!! init !!!")
 	if !rc.done() {
 		panic("Having more than one rechecking process at a time is not possible.")
 	}
@@ -818,6 +830,7 @@ func (rc *recheck) findNextEntryMatching(tx *types.Tx) bool {
 			found = true
 			break
 		}
+		fmt.Printf("🦋❌ Tx not found %x\n", string(tx.Hash()))
 	}
 
 	if !rc.tryFinish() {
