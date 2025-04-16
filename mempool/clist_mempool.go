@@ -480,6 +480,8 @@ func (mem *CListMempool) resCbFirstTime(
 // The case where the app checks the tx for the first time is handled by the
 // resCbFirstTime callback.
 func (mem *CListMempool) resCbRecheck(tx types.Tx, res *abci.ResponseCheckTx) {
+	mem.recheckCbMux.Lock()
+	defer mem.recheckCbMux.Unlock()
 	// Check whether tx is still in the list of transactions that can be rechecked.
 	if !mem.recheck.findNextEntryMatching(&tx) {
 		// Reached the end of the list and didn't find a matching tx; rechecking has finished.
@@ -697,7 +699,7 @@ func (mem *CListMempool) recheckTxs() {
 // rechecking. This is to guarantee that recheck responses are processed in the same sequential
 // order as they appear in the mempool.
 type recheck struct {
-	start         *clist.CElement // next expected recheck response
+	cursor        *clist.CElement // next expected recheck response
 	end           *clist.CElement // last entry in the mempool to recheck
 	doneCh        chan struct{}   // to signal that rechecking has finished successfully (for async app connections)
 	numPendingTxs atomic.Int32    // number of transactions still pending to recheck
@@ -715,7 +717,7 @@ func (rc *recheck) init(first, last *clist.CElement) {
 	if !rc.done() {
 		panic("Having more than one rechecking process at a time is not possible.")
 	}
-	rc.start = first
+	rc.cursor = first
 	rc.end = last
 	rc.numPendingTxs.Store(0)
 	rc.isRechecking.Store(true)
@@ -729,14 +731,20 @@ func (rc *recheck) done() bool {
 
 // setDone registers that rechecking has finished.
 func (rc *recheck) setDone() {
+	rc.cursor = nil
 	rc.recheckFull.Store(false)
 	rc.isRechecking.Store(false)
+}
+
+// setNextEntry sets cursor to the next entry in the list. If there is no next, cursor will be nil.
+func (rc *recheck) setNextEntry() {
+	rc.cursor = rc.cursor.Next()
 }
 
 // tryFinish will check if the cursor is at the end of the list and notify the channel that
 // rechecking has finished. It returns true iff it's done rechecking.
 func (rc *recheck) tryFinish() bool {
-	if rc.numPendingTxs.Load() == 0 {
+	if rc.cursor == rc.end {
 		// Reached end of the list without finding a matching tx.
 		rc.setDone()
 	}
@@ -751,7 +759,8 @@ func (rc *recheck) tryFinish() bool {
 	return false
 }
 
-// findNextEntryMatching searches for the transaction matching the given transaction. Then it checks if it has reached the
+// findNextEntryMatching searches for the next transaction matching the given transaction, which
+// corresponds to the recheck response to be processed next. Then it checks if it has reached the
 // end of the list, so it can finish rechecking.
 //
 // The goal is to guarantee that transactions are rechecked in the order in which they are in the
@@ -759,19 +768,20 @@ func (rc *recheck) tryFinish() bool {
 // not rechecked.
 func (rc *recheck) findNextEntryMatching(tx *types.Tx) bool {
 	found := false
-	for cursor := rc.start; !rc.done(); cursor = cursor.Next() {
-		expectedTx := cursor.Value.(*mempoolTx).tx
+	for ; !rc.done(); rc.setNextEntry() {
+		expectedTx := rc.cursor.Value.(*mempoolTx).tx
 		if bytes.Equal(*tx, expectedTx) {
 			// Found an entry in the list of txs to recheck that matches tx.
 			found = true
 			rc.numPendingTxs.Add(-1)
 			break
 		}
-		if cursor == rc.end {
-			break
-		}
 	}
-	rc.tryFinish()
+
+	if !rc.tryFinish() {
+		// Not finished yet; set the cursor for processing the next recheck response.
+		rc.setNextEntry()
+	}
 	return found
 }
 
