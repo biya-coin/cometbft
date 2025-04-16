@@ -47,8 +47,12 @@ func (app *unsyncLocalClient) CheckTxAsync(ctx context.Context, req *types.Reque
 	reqres := NewReqRes(types.ToRequestCheckTx(req))
 
 	go func() {
-		res, _ := app.Application.CheckTx(ctx, req)
-		reqres.Response = types.ToResponseCheckTx(res)
+		res, err := app.Application.CheckTx(ctx, req)
+		if err != nil {
+			reqres.Response = types.ToResponseException("") // optimistic recheck failed
+		} else {
+			reqres.Response = types.ToResponseCheckTx(res)
+		}
 
 		if app.Callback != nil {
 			app.Callback(reqres.Request, reqres.Response)

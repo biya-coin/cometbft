@@ -55,8 +55,6 @@ type CListMempool struct {
 
 	logger  log.Logger
 	metrics *Metrics
-
-	recheckCbMux cmtsync.Mutex
 }
 
 var _ Mempool = &CListMempool{}
@@ -87,8 +85,6 @@ func NewCListMempool(
 	} else {
 		mp.cache = NopTxCache{}
 	}
-
-	proxyAppConn.SetResponseCallback(mp.globalCb)
 
 	for _, option := range options {
 		option(mp)
@@ -274,49 +270,9 @@ func (mem *CListMempool) CheckTx(
 	if err != nil {
 		panic(fmt.Errorf("CheckTx request for tx %s failed: %w", log.NewLazySprintf("%v", tx.Hash()), err))
 	}
-	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
+	reqRes.SetCallback(mem.checkTxCb(tx, txInfo, cb))
 
 	return nil
-}
-
-// Global callback that will be called after every ABCI response.
-// Having a single global callback avoids needing to set a callback for each request.
-// However, processing the checkTx response requires the peerID (so we can track which txs we heard from who),
-// and peerID is not included in the ABCI request, so we have to set request-specific callbacks that
-// include this information. If we're not in the midst of a recheck, this function will just return,
-// so the request specific callback can do the work.
-//
-// When rechecking, we don't need the peerID, so the recheck callback happens
-// here.
-func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
-	switch r := req.Value.(type) {
-	case *abci.Request_CheckTx:
-		// Process only Recheck responses.
-		if r.CheckTx.Type != abci.CheckTxType_Recheck {
-			return
-		}
-	default:
-		// ignore other type of requests
-		return
-	}
-
-	switch r := res.Value.(type) {
-	case *abci.Response_CheckTx:
-		tx := types.Tx(req.GetCheckTx().Tx)
-		if mem.recheck.done() {
-			mem.logger.Error("rechecking has finished; discard late recheck response",
-				"tx", log.NewLazySprintf("%v", tx.Key()))
-			return
-		}
-		mem.metrics.RecheckTimes.Add(1)
-		mem.resCbRecheck(tx, r.CheckTx)
-
-		// update metrics
-		mem.metrics.Size.Set(float64(mem.Size()))
-
-	default:
-		// ignore other messages
-	}
 }
 
 // Request specific callback that should be set on individual reqRes objects
@@ -328,7 +284,7 @@ func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
 // when all other response processing is complete.
 //
 // Used in CheckTx to record PeerID who sent us the tx.
-func (mem *CListMempool) reqResCb(
+func (mem *CListMempool) checkTxCb(
 	tx []byte,
 	txInfo TxInfo,
 	externalCb func(*abci.ResponseCheckTx),
@@ -480,8 +436,6 @@ func (mem *CListMempool) resCbFirstTime(
 // The case where the app checks the tx for the first time is handled by the
 // resCbFirstTime callback.
 func (mem *CListMempool) resCbRecheck(tx types.Tx, res *abci.ResponseCheckTx) {
-	mem.recheckCbMux.Lock()
-	defer mem.recheckCbMux.Unlock()
 	// Check whether tx is still in the list of transactions that can be rechecked.
 	if !mem.recheck.findNextEntryMatching(&tx) {
 		// Reached the end of the list and didn't find a matching tx; rechecking has finished.
@@ -661,21 +615,19 @@ func (mem *CListMempool) recheckTxs() {
 	// because this function has the lock (via Update and Lock).
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		tx := e.Value.(*mempoolTx).tx
-		mem.recheck.numPendingTxs.Add(1)
-
-		// Send a CheckTx request to the app. If we're using a sync client, the resCbRecheck
-		// callback will be called right after receiving the response.
-		_, err := mem.proxyAppConn.CheckTxAsync(context.TODO(), &abci.RequestCheckTx{
-			Tx:   tx,
-			Type: abci.CheckTxType_Recheck,
-		})
-		if err != nil {
-			panic(fmt.Errorf("(re-)CheckTx request for tx %s failed: %w", log.NewLazySprintf("%v", tx.Hash()), err))
+		waitResponse := &waitRecheckTxResponse{
+			tx:     tx,
+			waitCb: make(chan *abci.ResponseCheckTx),
 		}
+		mem.recheck.responseWaitQueue = append(mem.recheck.responseWaitQueue, waitResponse)
+
+		mem.recheckTxAsync(waitResponse)
 	}
 
 	// Flush any pending asynchronous recheck requests to process.
 	mem.proxyAppConn.Flush(context.TODO())
+
+	go mem.waitForRecheckCallbacks()
 
 	// Give some time to finish processing the responses; then finish the rechecking process, even
 	// if not all txs were rechecked.
@@ -692,6 +644,88 @@ func (mem *CListMempool) recheckTxs() {
 	mem.logger.Debug("done rechecking txs", "height", mem.height.Load(), "num-txs", mem.Size())
 }
 
+func (mem *CListMempool) recheckTxAsync(waitResponse *waitRecheckTxResponse) {
+	// Send a CheckTx request to the app. If we're using a sync client, the resCbRecheck
+	// callback will be called right after receiving the response.
+	reqRes, err := mem.proxyAppConn.CheckTxAsync(context.TODO(), &abci.RequestCheckTx{
+		Tx:   waitResponse.tx,
+		Type: abci.CheckTxType_Recheck,
+	})
+	if err != nil {
+		panic(fmt.Errorf("async (re-)CheckTx request for tx %s failed: %w", log.NewLazySprintf("%v", waitResponse.tx.Hash()), err))
+	}
+	reqRes.SetCallback(mem.recheckTxCb(waitResponse))
+}
+
+func (mem *CListMempool) recheckTxSync(waitResponse *waitRecheckTxResponse) {
+	// Send a CheckTx request to the app
+	res, _ := mem.proxyAppConn.CheckTx(context.TODO(), &abci.RequestCheckTx{
+		Tx:   waitResponse.tx,
+		Type: abci.CheckTxType_Recheck,
+	})
+	mem.recheck.numPendingTxs.Add(-1)
+	mem.resCbRecheck(waitResponse.tx, res)
+}
+
+// recheckTxCb encapsulates in a closure wait channel to return the result of recheckTx to it
+func (mem *CListMempool) recheckTxCb(waitResponse *waitRecheckTxResponse) func(*abci.Response) {
+	return func(res *abci.Response) {
+		switch r := res.Value.(type) {
+		case *abci.Response_CheckTx:
+			if mem.recheck.done() {
+				mem.logger.Error("rechecking has finished; discard late recheck response",
+					"tx", log.NewLazySprintf("%v", waitResponse.tx.Key()))
+				return
+			}
+			mem.metrics.RecheckTimes.Add(1)
+			waitResponse.waitCb <- r.CheckTx
+			// update metrics
+			mem.metrics.Size.Set(float64(mem.Size()))
+
+		case *abci.Response_Exception: // optimistic recheck failed, retry this txn sequentially
+			if mem.recheck.done() {
+				mem.logger.Error("rechecking has finished; discard late optimistic recheck ERROR response",
+					"tx", log.NewLazySprintf("%v", waitResponse.tx.Key()))
+				return
+			}
+			mem.metrics.RecheckTimes.Add(1)
+			// re-check this txn sequentialy
+			waitResponse.waitCb <- nil
+
+		default:
+			// ignore other messages
+		}
+	}
+}
+
+func (mem *CListMempool) queueForRecheckTxSync(waitResponse *waitRecheckTxResponse) {
+	mem.recheck.reRecheckQueue.PushBack(waitResponse)
+}
+
+func (mem *CListMempool) reRecheck() {
+	mem.recheck.numPendingTxs.Add(int32(mem.recheck.reRecheckQueue.Len()))
+	for iter := mem.recheck.reRecheckQueue.Front(); iter != nil; iter = iter.Next() {
+		waitResponse := iter.Value.(*waitRecheckTxResponse)
+		mem.recheckTxSync(waitResponse)
+	}
+}
+
+// waitForRecheckCallbacks iterates over responseWaitQueue channels to handle recheckTx responses in order
+func (mem *CListMempool) waitForRecheckCallbacks() {
+	for _, waitResponse := range mem.recheck.responseWaitQueue {
+		res := <-waitResponse.waitCb
+		if res == nil {
+			mem.queueForRecheckTxSync(waitResponse)
+		} else {
+			mem.resCbRecheck(waitResponse.tx, res)
+		}
+
+		if left := mem.recheck.numPendingTxs.Add(-1); left == 0 {
+			mem.reRecheck()
+		}
+	}
+}
+
 // The cursor and end pointers define a dynamic list of transactions that could be rechecked. The
 // end pointer is fixed. When a recheck response for a transaction is received, cursor will point to
 // the entry in the mempool corresponding to that transaction, thus narrowing the list. Transactions
@@ -699,17 +733,25 @@ func (mem *CListMempool) recheckTxs() {
 // rechecking. This is to guarantee that recheck responses are processed in the same sequential
 // order as they appear in the mempool.
 type recheck struct {
-	cursor        *clist.CElement // next expected recheck response
-	end           *clist.CElement // last entry in the mempool to recheck
-	doneCh        chan struct{}   // to signal that rechecking has finished successfully (for async app connections)
-	numPendingTxs atomic.Int32    // number of transactions still pending to recheck
-	isRechecking  atomic.Bool     // true iff the rechecking process has begun and is not yet finished
-	recheckFull   atomic.Bool     // whether rechecking TXs cannot be completed before a new block is decided
+	cursor            *clist.CElement          // next expected recheck response
+	end               *clist.CElement          // last entry in the mempool to recheck
+	doneCh            chan struct{}            // to signal that rechecking has finished successfully (for async app connections)
+	numPendingTxs     atomic.Int32             // number of transactions still pending to recheck
+	responseWaitQueue []*waitRecheckTxResponse // array of channels that we use to wait for callbacks in the same order we started the recheck requests
+	reRecheckQueue    *clist.CList             // a list of txns awaiting re-recheck (failed during optimistic recheck)
+	isRechecking      atomic.Bool              // true iff the rechecking process has begun and is not yet finished
+	recheckFull       atomic.Bool              // whether rechecking TXs cannot be completed before a new block is decided
+}
+
+type waitRecheckTxResponse struct {
+	tx     types.Tx
+	waitCb chan *abci.ResponseCheckTx
 }
 
 func newRecheck() *recheck {
 	return &recheck{
-		doneCh: make(chan struct{}, 1),
+		doneCh:         make(chan struct{}, 1),
+		reRecheckQueue: clist.New(),
 	}
 }
 
@@ -720,6 +762,8 @@ func (rc *recheck) init(first, last *clist.CElement) {
 	rc.cursor = first
 	rc.end = last
 	rc.numPendingTxs.Store(0)
+	rc.responseWaitQueue = make([]*waitRecheckTxResponse, 0)
+	rc.reRecheckQueue = clist.New()
 	rc.isRechecking.Store(true)
 }
 
@@ -731,7 +775,6 @@ func (rc *recheck) done() bool {
 
 // setDone registers that rechecking has finished.
 func (rc *recheck) setDone() {
-	rc.cursor = nil
 	rc.recheckFull.Store(false)
 	rc.isRechecking.Store(false)
 }
@@ -773,7 +816,6 @@ func (rc *recheck) findNextEntryMatching(tx *types.Tx) bool {
 		if bytes.Equal(*tx, expectedTx) {
 			// Found an entry in the list of txs to recheck that matches tx.
 			found = true
-			rc.numPendingTxs.Add(-1)
 			break
 		}
 	}
