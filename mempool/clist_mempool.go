@@ -716,13 +716,15 @@ func (mem *CListMempool) reRecheck() {
 func (mem *CListMempool) waitForRecheckCallbacks() {
 	for _, waitResponse := range mem.recheck.responseWaitQueue {
 		res := <-waitResponse.waitCb
+		left := mem.recheck.numPendingTxs.Add(-1)
+
 		if res == nil {
 			mem.queueForRecheckTxSync(waitResponse)
 		} else {
 			mem.resCbRecheck(waitResponse.tx, res)
 		}
 
-		if left := mem.recheck.numPendingTxs.Add(-1); left == 0 {
+		if left == 0 {
 			mem.reRecheck()
 		}
 	}
