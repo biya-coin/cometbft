@@ -224,9 +224,7 @@ func (mem *CListMempool) CheckTx(
 	txInfo TxInfo,
 ) error {
 	mem.updateMtx.RLock()
-	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
-
+	// Unlock will happen in the callback
 	txSize := len(tx)
 
 	if err := mem.isFull(txSize); err != nil {
@@ -290,6 +288,8 @@ func (mem *CListMempool) checkTxCb(
 	externalCb func(*abci.ResponseCheckTx),
 ) func(res *abci.Response) {
 	return func(res *abci.Response) {
+		defer mem.updateMtx.RUnlock()
+
 		if !mem.recheck.done() {
 			panic(log.NewLazySprintf("rechecking has not finished; cannot check new tx %v",
 				types.Tx(tx).Hash()))
