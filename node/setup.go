@@ -253,6 +253,7 @@ func createMempoolAndMempoolReactor(
 			mp.EnableTxsAvailable()
 		}
 		reactor.SetLogger(logger)
+		reactor.SetMempoolTxChannel(reactor.GetMempoolTxWithCListMempool(mp))
 
 		return mp, reactor
 	case cfg.MempoolTypeNop:
@@ -260,7 +261,21 @@ func createMempoolAndMempoolReactor(
 		// adding it leads to a cleaner code.
 		return &mempl.NopMempool{}, mempl.NewNopMempoolReactor()
 	case cfg.MempoolTypeProxy:
-		return &mempl.ProxyMempool{}, mempl.NewNopMempoolReactor()
+		mp := &mempl.ProxyMempool{}
+		reactor := mempl.NewReactor(
+			config.Mempool,
+			mp,
+		)
+		if config.Consensus.WaitForTxs() {
+			mp.EnableTxsAvailable()
+		}
+		reactor.SetLogger(logger)
+
+		// TODO: SetMempoolTxChannel
+		//reactor.SetMempoolTxChannel(???)
+
+		return mp, reactor
+
 	default:
 		panic(fmt.Sprintf("unknown mempool type: %q", config.Mempool.Type))
 	}
