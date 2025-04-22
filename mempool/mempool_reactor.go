@@ -3,12 +3,12 @@ package mempool
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"fmt"
 
 	cfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/libs/clist"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/p2p"
 	protomem "github.com/cometbft/cometbft/proto/tendermint/mempool"
@@ -19,10 +19,10 @@ import (
 // Reactor handles mempool tx broadcasting amongst peers.
 // It maintains a map from peer ID to counter, to prevent gossiping txs to the
 // peers you received it from.
-type Reactor struct {
+type MempoolReactor struct {
 	p2p.BaseReactor
 	config  *cfg.MempoolConfig
-	mempool *CListMempool
+	mempool Mempool
 	ids     *mempoolIDs
 
 	// Semaphores to keep track of how many connections to peers are active for broadcasting
@@ -30,14 +30,22 @@ type Reactor struct {
 	// connections for different groups of peers.
 	activePersistentPeersSemaphore    *semaphore.Weighted
 	activeNonPersistentPeersSemaphore *semaphore.Weighted
+
+	// Map of peer ID to their broadcast channel
+	peerBroadcastChannels sync.Map
+
+	// Channel for receiving transactions from the mempool.
+	// This channel is used by broadcastTxRoutine to distribute transactions to peers.
+	getMempoolTx chan *mempoolTx
 }
 
-// NewReactor returns a new Reactor with the given config and mempool.
-func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
-	memR := &Reactor{
-		config:  config,
-		mempool: mempool,
-		ids:     newMempoolIDs(),
+// NewMempoolReactor returns a new MempoolReactor with the given config and mempool.
+func NewMempoolReactor(config *cfg.MempoolConfig, mempool Mempool) p2p.Reactor {
+	memR := &MempoolReactor{
+		config:                config,
+		mempool:               mempool,
+		ids:                   newMempoolIDs(),
+		peerBroadcastChannels: sync.Map{},
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.activePersistentPeersSemaphore = semaphore.NewWeighted(int64(memR.config.ExperimentalMaxGossipConnectionsToPersistentPeers))
@@ -47,28 +55,29 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 }
 
 // InitPeer implements Reactor by creating a state for the peer.
-func (memR *Reactor) InitPeer(peer p2p.Peer) p2p.Peer {
+func (memR *MempoolReactor) InitPeer(peer p2p.Peer) p2p.Peer {
 	memR.ids.ReserveForPeer(peer)
 	return peer
 }
 
 // SetLogger sets the Logger on the reactor and the underlying mempool.
-func (memR *Reactor) SetLogger(l log.Logger) {
+func (memR *MempoolReactor) SetLogger(l log.Logger) {
 	memR.Logger = l
-	memR.mempool.SetLogger(l)
 }
 
 // OnStart implements p2p.BaseReactor.
-func (memR *Reactor) OnStart() error {
+func (memR *MempoolReactor) OnStart() error {
 	if !memR.config.Broadcast {
 		memR.Logger.Info("Tx broadcasting is disabled")
+	} else {
+		go memR.broadcastTxRoutine()
 	}
 	return nil
 }
 
 // GetChannels implements Reactor by returning the list of channels for this
 // reactor.
-func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
+func (memR *MempoolReactor) GetChannels() []*p2p.ChannelDescriptor {
 	largestTx := make([]byte, memR.config.MaxTxBytes)
 	batchMsg := protomem.Message{
 		Sum: &protomem.Message_Txs{
@@ -88,7 +97,7 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 
 // AddPeer implements Reactor.
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
-func (memR *Reactor) AddPeer(peer p2p.Peer) {
+func (memR *MempoolReactor) AddPeer(peer p2p.Peer) {
 	if memR.config.Broadcast {
 		go func() {
 			// Always forward transactions to unconditional peers.
@@ -122,22 +131,41 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 				}
 			}
 
-			memR.mempool.metrics.ActiveOutboundConnections.Add(1)
-			defer memR.mempool.metrics.ActiveOutboundConnections.Add(-1)
-			memR.broadcastTxRoutine(peer)
+			// Check if peer is still running after semaphore acquisition
+			if !peer.IsRunning() {
+				return
+			}
+
+			peerID := memR.ids.GetForPeer(peer)
+			peerChan := make(chan *mempoolTx, memR.config.Size)
+
+			// Store the channel atomically
+			if _, loaded := memR.peerBroadcastChannels.LoadOrStore(peerID, peerChan); loaded {
+				// If channel already exists, close the new one and return
+				close(peerChan)
+				return
+			}
+
+			// Start the broadcast routine
+			memR.broadcastTxPeerRoutine(peer, peerChan)
 		}()
 	}
 }
 
 // RemovePeer implements Reactor.
-func (memR *Reactor) RemovePeer(peer p2p.Peer, _ interface{}) {
+func (memR *MempoolReactor) RemovePeer(peer p2p.Peer, _ interface{}) {
+	peerID := memR.ids.GetForPeer(peer)
+
+	if ch, exists := memR.peerBroadcastChannels.LoadAndDelete(peerID); exists {
+		close(ch.(chan *mempoolTx))
+	}
+
 	memR.ids.Reclaim(peer)
-	// broadcast routine checks if peer is gone and returns
 }
 
 // Receive implements Reactor.
 // It adds any received transactions to the mempool.
-func (memR *Reactor) Receive(e p2p.Envelope) {
+func (memR *MempoolReactor) Receive(e p2p.Envelope) {
 	memR.Logger.Debug("Receive", "src", e.Src, "chId", e.ChannelID, "msg", e.Message)
 	switch msg := e.Message.(type) {
 	case *protomem.Txs:
@@ -176,36 +204,14 @@ func (memR *Reactor) Receive(e p2p.Envelope) {
 	// broadcasting happens from go routines per peer
 }
 
-// PeerState describes the state of a peer.
-type PeerState interface {
-	GetHeight() int64
-}
-
 // Send new mempool txs to peer.
-func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
+func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan *mempoolTx) {
 	peerID := memR.ids.GetForPeer(peer)
-	var next *clist.CElement
 
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
 		if !memR.IsRunning() || !peer.IsRunning() {
 			return
-		}
-
-		// This happens because the CElement we were looking at got garbage
-		// collected (removed). That is, .NextWait() returned nil. Go ahead and
-		// start from the beginning.
-		if next == nil {
-			select {
-			case <-memR.mempool.TxsWaitChan(): // Wait until a tx is available
-				if next = memR.mempool.TxsFront(); next == nil {
-					continue
-				}
-			case <-peer.Quit():
-				return
-			case <-memR.Quit():
-				return
-			}
 		}
 
 		// Make sure the peer is up to date.
@@ -220,31 +226,27 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
-		// Allow for a lag of 1 block.
-		memTx := next.Value.(*mempoolTx)
-		if peerState.GetHeight() < memTx.Height()-1 {
-			time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
-			continue
-		}
+		select {
+		case memTx, ok := <-peerChan:
+			if !ok {
+				return
+			}
 
-		// NOTE: Transaction batching was disabled due to
-		// https://github.com/tendermint/tendermint/issues/5796
-
-		if !memTx.isSender(peerID) {
-			success := peer.Send(p2p.Envelope{
-				ChannelID: MempoolChannel,
-				Message:   &protomem.Txs{Txs: [][]byte{memTx.tx}},
-			})
-			if !success {
+			if peerState.GetHeight() < memTx.Height()-1 {
 				time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
-		}
 
-		select {
-		case <-next.NextWaitChan():
-			// see the start of the for loop for nil check
-			next = next.Next()
+			if !memTx.isSender(peerID) {
+				success := peer.Send(p2p.Envelope{
+					ChannelID: MempoolChannel,
+					Message:   &protomem.Txs{Txs: [][]byte{memTx.tx}},
+				})
+				if !success {
+					time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
+					continue
+				}
+			}
 		case <-peer.Quit():
 			return
 		case <-memR.Quit():
@@ -253,12 +255,41 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	}
 }
 
-// TxsMessage is a Message containing transactions.
-type TxsMessage struct {
-	Txs []types.Tx
+// BroadcastTx sends a transaction to all connected peers
+func (memR *MempoolReactor) broadcastTxRoutine() {
+	// Check if mempool tx channel is set
+	if memR.getMempoolTx == nil {
+		memR.Logger.Error("mempool tx channel is not set, broadcasting is disabled")
+		return
+	}
+
+	for {
+		if !memR.IsRunning() {
+			return
+		}
+
+		select {
+		case tx := <-memR.getMempoolTx:
+			memR.peerBroadcastChannels.Range(func(key, value interface{}) bool {
+				peerID := key.(uint16)
+				ch := value.(chan *mempoolTx)
+
+				select {
+				case ch <- tx:
+				default:
+					memR.Logger.Debug("peer broadcast channel is full", "peerID", peerID)
+				}
+				return true
+			})
+		case <-memR.Quit():
+			return
+		}
+	}
 }
 
-// String returns a string representation of the TxsMessage.
-func (m *TxsMessage) String() string {
-	return fmt.Sprintf("[TxsMessage %v]", m.Txs)
+// SetMempoolTxChannel sets the channel for receiving transactions from the mempool.
+// This channel will be used by the broadcastTxRoutine to distribute transactions to peers.
+// NOTE: This method MUST be called before OnStart() is called.
+func (memR *MempoolReactor) SetMempoolTxChannel(channel chan *mempoolTx) {
+	memR.getMempoolTx = channel
 }
