@@ -264,14 +264,12 @@ func createMempoolAndMempoolReactor(
 		reactor := mempl.NewMempoolReactor(
 			config.Mempool,
 			mp,
+			mp,
 		)
 		if config.Consensus.WaitForTxs() {
 			mp.EnableTxsAvailable()
 		}
 		reactor.SetLogger(logger)
-
-		// TODO: SetMempoolTxChannel
-		//reactor.SetMempoolTxChannel(???)
 
 		return mp, reactor
 

@@ -11,3 +11,8 @@ func (m *ProxyMempool) SetMempool(mp Mempool) {
 }
 
 // TODO: add assertions for all methods
+
+// ProxyMempool implements TxBroadcastStream interface
+func (mp *ProxyMempool) GetNextTx() <-chan *mempoolTx {
+	panic("implement me")
+}
