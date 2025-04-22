@@ -16,9 +16,10 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-// TxBroadcastStream defines the interface for streaming transactions to broadcast
+// TxBroadcastStream defines the interface for streaming transactions to broadcast.
+// It provides a channel that will receive transactions to be broadcasted to peers.
 type TxBroadcastStream interface {
-	// GetNextTx returns a channel that will receive transactions to broadcast
+	// GetNextTx returns a channel that will receive transactions to broadcast.
 	GetNextTx() <-chan *mempoolTx
 }
 
@@ -261,7 +262,8 @@ func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan 
 	}
 }
 
-// BroadcastTx sends a transaction to all connected peers
+// BroadcastTx sends transactions to all connected peers.
+// It reads transactions from the txStream and forwards them to all peers.
 func (memR *MempoolReactor) broadcastTxRoutine() {
 	// Check if txStream is set
 	if memR.txStream == nil {
