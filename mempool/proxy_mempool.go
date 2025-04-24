@@ -2,17 +2,18 @@ package mempool
 
 type ProxyMempool struct {
 	Mempool
+	TxBroadcastStream
 }
 
 var _ Mempool = (*ProxyMempool)(nil)
+var _ TxBroadcastStream = (*ProxyMempool)(nil)
 
 func (m *ProxyMempool) SetMempool(mp Mempool) {
 	m.Mempool = mp
 }
 
-// TODO: add assertions for all methods
-
-// ProxyMempool implements TxBroadcastStream interface
-func (mp *ProxyMempool) GetNextTx() <-chan *mempoolTx {
-	panic("implement me")
+func (m *ProxyMempool) SetTxBroadcastStream(stream TxBroadcastStream) {
+	m.TxBroadcastStream = stream
 }
+
+// TODO: add assertions for all methods
