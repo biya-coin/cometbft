@@ -617,6 +617,7 @@ func (mem *CListMempool) recheckTxs() {
 	// because this function has the lock (via Update and Lock).
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		tx := e.Value.(*mempoolTx).tx
+		mem.recheck.numPendingTxs.Add(1)
 		waitResponse := &waitRecheckTxResponse{
 			tx:     tx,
 			waitCb: make(chan *abci.ResponseCheckTx),
@@ -637,7 +638,7 @@ func (mem *CListMempool) recheckTxs() {
 	case <-time.After(mem.config.RecheckTimeout):
 		mem.recheck.setDone()
 		mem.logger.Error("timed out waiting for recheck responses")
-	case <-mem.recheck.doneRechecking():
+	case <-mem.recheck.doneCh:
 	}
 
 	if n := mem.recheck.numPendingTxs.Load(); n > 0 {
@@ -704,29 +705,40 @@ func (mem *CListMempool) queueForRecheckTxSync(waitResponse *waitRecheckTxRespon
 	mem.recheck.reRecheckQueue.PushBack(waitResponse)
 }
 
+// reRecheck is only triggered if we failed optimistic recheck for some txns.
+// Resetting recheck cursor to point to leftover txns in the mempool (that includes
+// both failed optimistic recheck and passed GOOD txns left in the mempool, but it's OK since
+// we will just skip them during iteration), and check them synchronously
 func (mem *CListMempool) reRecheck() {
-	mem.recheck.numPendingTxs.Add(int32(mem.recheck.reRecheckQueue.Len()))
+	mem.recheck.cursor = mem.txs.Front()
+	mem.recheck.end = mem.txs.Back()
 	for iter := mem.recheck.reRecheckQueue.Front(); iter != nil; iter = iter.Next() {
 		waitResponse := iter.Value.(*waitRecheckTxResponse)
 		mem.recheckTxSync(waitResponse)
 	}
+	mem.recheck.setDone()
 }
 
 // waitForRecheckCallbacks iterates over responseWaitQueue channels to handle recheckTx responses in order
 func (mem *CListMempool) waitForRecheckCallbacks() {
 	for _, waitResponse := range mem.recheck.responseWaitQueue {
 		res := <-waitResponse.waitCb
-		left := mem.recheck.numPendingTxs.Add(-1)
-
 		if res == nil {
 			mem.queueForRecheckTxSync(waitResponse)
 		} else {
+			mem.recheck.numPendingTxs.Add(-1)
 			mem.resCbRecheck(waitResponse.tx, res)
 		}
+	}
 
-		if left == 0 {
-			mem.reRecheck()
-		}
+	if mem.recheck.done() {
+		return
+	}
+
+	if mem.recheck.numPendingTxs.Load() > 0 {
+		mem.reRecheck()
+	} else {
+		mem.recheck.setDone()
 	}
 }
 
@@ -781,59 +793,27 @@ func (rc *recheck) done() bool {
 func (rc *recheck) setDone() {
 	rc.recheckFull.Store(false)
 	rc.isRechecking.Store(false)
-}
 
-// setNextEntry sets cursor to the next entry in the list. If there is no next, cursor will be nil.
-func (rc *recheck) setNextEntry() {
-	rc.cursor = rc.cursor.Next()
-}
-
-// tryFinish will check if the cursor is at the end of the list and notify the channel that
-// rechecking has finished. It returns true iff it's done rechecking.
-func (rc *recheck) tryFinish() bool {
-	if rc.cursor == rc.end {
-		// Reached end of the list without finding a matching tx.
-		rc.setDone()
+	select {
+	case rc.doneCh <- struct{}{}:
+	default:
 	}
-	if rc.done() {
-		// Notify that recheck has finished.
-		select {
-		case rc.doneCh <- struct{}{}:
-		default:
-		}
-		return true
-	}
-	return false
 }
 
 // findNextEntryMatching searches for the next transaction matching the given transaction, which
-// corresponds to the recheck response to be processed next. Then it checks if it has reached the
-// end of the list, so it can finish rechecking.
+// corresponds to the recheck response to be processed next.
 //
 // The goal is to guarantee that transactions are rechecked in the order in which they are in the
-// mempool. Transactions whose recheck response arrive late or don't arrive at all are skipped and
-// not rechecked.
+// mempool.
 func (rc *recheck) findNextEntryMatching(tx *types.Tx) bool {
-	found := false
-	for ; !rc.done(); rc.setNextEntry() {
+	for ; !rc.done() && rc.cursor != nil; rc.cursor = rc.cursor.Next() {
 		expectedTx := rc.cursor.Value.(*mempoolTx).tx
 		if bytes.Equal(*tx, expectedTx) {
-			// Found an entry in the list of txs to recheck that matches tx.
-			found = true
-			break
+			return true
 		}
 	}
 
-	if !rc.tryFinish() {
-		// Not finished yet; set the cursor for processing the next recheck response.
-		rc.setNextEntry()
-	}
-	return found
-}
-
-// doneRechecking returns the channel used to signal that rechecking has finished.
-func (rc *recheck) doneRechecking() <-chan struct{} {
-	return rc.doneCh
+	return false
 }
 
 // setRecheckFull sets recheckFull to true if rechecking is still in progress. It returns true iff
