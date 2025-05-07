@@ -261,7 +261,7 @@ func createMempoolAndMempoolReactor(
 		return &mempl.NopMempool{}, mempl.NewNopMempoolReactor()
 	case cfg.MempoolTypeProxy:
 		mp := &mempl.ProxyMempool{}
-		reactor := mempl.NewMempoolReactor(
+		reactor := mempl.NewMempoolInterfaceReactor(
 			config.Mempool,
 			mp,
 			mp,
