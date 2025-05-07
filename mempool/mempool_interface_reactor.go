@@ -19,7 +19,7 @@ import (
 // Reactor handles mempool tx broadcasting amongst peers.
 // It maintains a map from peer ID to counter, to prevent gossiping txs to the
 // peers you received it from.
-type MempoolReactor struct {
+type MempoolInterfaceReactor struct {
 	p2p.BaseReactor
 	config  *cfg.MempoolConfig
 	mempool Mempool
@@ -38,9 +38,9 @@ type MempoolReactor struct {
 	txStream TxBroadcastStream
 }
 
-// NewMempoolReactor returns a new MempoolReactor with the given config and mempool.
-func NewMempoolReactor(config *cfg.MempoolConfig, mempool Mempool, txStream TxBroadcastStream) p2p.Reactor {
-	memR := &MempoolReactor{
+// NewMempoolInterfaceReactor returns a new MempoolInterfaceReactor with the given config and mempool.
+func NewMempoolInterfaceReactor(config *cfg.MempoolConfig, mempool Mempool, txStream TxBroadcastStream) p2p.Reactor {
+	memR := &MempoolInterfaceReactor{
 		config:                config,
 		mempool:               mempool,
 		ids:                   newMempoolIDs(),
@@ -55,18 +55,18 @@ func NewMempoolReactor(config *cfg.MempoolConfig, mempool Mempool, txStream TxBr
 }
 
 // InitPeer implements Reactor by creating a state for the peer.
-func (memR *MempoolReactor) InitPeer(peer p2p.Peer) p2p.Peer {
+func (memR *MempoolInterfaceReactor) InitPeer(peer p2p.Peer) p2p.Peer {
 	memR.ids.ReserveForPeer(peer)
 	return peer
 }
 
 // SetLogger sets the Logger on the reactor and the underlying mempool.
-func (memR *MempoolReactor) SetLogger(l log.Logger) {
+func (memR *MempoolInterfaceReactor) SetLogger(l log.Logger) {
 	memR.Logger = l
 }
 
 // OnStart implements p2p.BaseReactor.
-func (memR *MempoolReactor) OnStart() error {
+func (memR *MempoolInterfaceReactor) OnStart() error {
 	if !memR.config.Broadcast {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	} else {
@@ -77,7 +77,7 @@ func (memR *MempoolReactor) OnStart() error {
 
 // GetChannels implements Reactor by returning the list of channels for this
 // reactor.
-func (memR *MempoolReactor) GetChannels() []*p2p.ChannelDescriptor {
+func (memR *MempoolInterfaceReactor) GetChannels() []*p2p.ChannelDescriptor {
 	largestTx := make([]byte, memR.config.MaxTxBytes)
 	batchMsg := protomem.Message{
 		Sum: &protomem.Message_Txs{
@@ -97,7 +97,7 @@ func (memR *MempoolReactor) GetChannels() []*p2p.ChannelDescriptor {
 
 // AddPeer implements Reactor.
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
-func (memR *MempoolReactor) AddPeer(peer p2p.Peer) {
+func (memR *MempoolInterfaceReactor) AddPeer(peer p2p.Peer) {
 	if memR.config.Broadcast {
 		go func() {
 			// Always forward transactions to unconditional peers.
@@ -153,7 +153,7 @@ func (memR *MempoolReactor) AddPeer(peer p2p.Peer) {
 }
 
 // RemovePeer implements Reactor.
-func (memR *MempoolReactor) RemovePeer(peer p2p.Peer, _ interface{}) {
+func (memR *MempoolInterfaceReactor) RemovePeer(peer p2p.Peer, _ interface{}) {
 	peerID := memR.ids.GetForPeer(peer)
 
 	if ch, exists := memR.peerBroadcastChannels.LoadAndDelete(peerID); exists {
@@ -165,7 +165,7 @@ func (memR *MempoolReactor) RemovePeer(peer p2p.Peer, _ interface{}) {
 
 // Receive implements Reactor.
 // It adds any received transactions to the mempool.
-func (memR *MempoolReactor) Receive(e p2p.Envelope) {
+func (memR *MempoolInterfaceReactor) Receive(e p2p.Envelope) {
 	memR.Logger.Debug("Receive", "src", e.Src, "chId", e.ChannelID, "msg", e.Message)
 	switch msg := e.Message.(type) {
 	case *protomem.Txs:
@@ -205,7 +205,7 @@ func (memR *MempoolReactor) Receive(e p2p.Envelope) {
 }
 
 // Send new mempool txs to peer.
-func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan MempoolTx) {
+func (memR *MempoolInterfaceReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan MempoolTx) {
 	peerID := memR.ids.GetForPeer(peer)
 
 	for {
@@ -249,15 +249,12 @@ func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan 
 			}
 		case <-peer.Quit():
 			return
-		case <-memR.Quit():
-			return
 		}
 	}
 }
 
-// BroadcastTx sends transactions to all connected peers.
-// It reads transactions from the txStream and forwards them to all peers.
-func (memR *MempoolReactor) broadcastTxRoutine() {
+// broadcastTxRoutine broadcasts transactions from the mempool to all peers.
+func (memR *MempoolInterfaceReactor) broadcastTxRoutine() {
 	// Check if txStream is set
 	if memR.txStream == nil {
 		memR.Logger.Error("txStream is not set, broadcasting is disabled")
