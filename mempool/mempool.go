@@ -147,3 +147,19 @@ func PostCheckMaxGas(maxGas int64) PostCheckFunc {
 
 // TxKey is the fixed length array key used as an index.
 type TxKey [sha256.Size]byte
+
+// MempoolTx defines the interface for a transaction in the mempool
+// It provides methods to access transaction properties and sender information
+type MempoolTx interface {
+	Height() int64
+	GasWanted() int64
+	Tx() types.Tx
+	IsSender(peerID uint16) bool
+}
+
+// TxBroadcastStream defines the interface for streaming transactions to broadcast.
+// It provides a channel that will receive transactions to be broadcasted to peers.
+type TxBroadcastStream interface {
+	// GetNextTx returns a channel that will receive transactions to broadcast.
+	GetNextTx() <-chan MempoolTx
+}

@@ -16,13 +16,6 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-// TxBroadcastStream defines the interface for streaming transactions to broadcast.
-// It provides a channel that will receive transactions to be broadcasted to peers.
-type TxBroadcastStream interface {
-	// GetNextTx returns a channel that will receive transactions to broadcast.
-	GetNextTx() <-chan *mempoolTx
-}
-
 // Reactor handles mempool tx broadcasting amongst peers.
 // It maintains a map from peer ID to counter, to prevent gossiping txs to the
 // peers you received it from.
@@ -144,7 +137,7 @@ func (memR *MempoolReactor) AddPeer(peer p2p.Peer) {
 			}
 
 			peerID := memR.ids.GetForPeer(peer)
-			peerChan := make(chan *mempoolTx, memR.config.Size)
+			peerChan := make(chan MempoolTx, memR.config.Size)
 
 			// Store the channel atomically
 			if _, loaded := memR.peerBroadcastChannels.LoadOrStore(peerID, peerChan); loaded {
@@ -212,7 +205,7 @@ func (memR *MempoolReactor) Receive(e p2p.Envelope) {
 }
 
 // Send new mempool txs to peer.
-func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan *mempoolTx) {
+func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan MempoolTx) {
 	peerID := memR.ids.GetForPeer(peer)
 
 	for {
@@ -244,10 +237,10 @@ func (memR *MempoolReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan 
 				continue
 			}
 
-			if !memTx.isSender(peerID) {
+			if !memTx.IsSender(peerID) {
 				success := peer.Send(p2p.Envelope{
 					ChannelID: MempoolChannel,
-					Message:   &protomem.Txs{Txs: [][]byte{memTx.tx}},
+					Message:   &protomem.Txs{Txs: [][]byte{memTx.Tx()}},
 				})
 				if !success {
 					time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
@@ -283,7 +276,7 @@ func (memR *MempoolReactor) broadcastTxRoutine() {
 			if tx != nil {
 				memR.peerBroadcastChannels.Range(func(key, value interface{}) bool {
 					peerID := key.(uint16)
-					ch := value.(chan *mempoolTx)
+					ch := value.(chan MempoolTx)
 
 					select {
 					case ch <- tx:
