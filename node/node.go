@@ -136,6 +136,18 @@ func StateProvider(stateProvider statesync.StateProvider) Option {
 	}
 }
 
+func WithCustomMempoolOnProxyMempool(customMempool mempl.Mempool, txBroadcastStream mempl.TxBroadcastStream) Option {
+	return func(n *Node) {
+		proxyMempool, ok := n.mempool.(*mempl.ProxyMempool)
+		if !ok {
+			panic("mempool is not a proxy mempool")
+		}
+
+		proxyMempool.SetMempool(customMempool)
+		proxyMempool.SetTxBroadcastStream(txBroadcastStream)
+	}
+}
+
 // BootstrapState synchronizes the stores with the application after state sync
 // has been performed offline. It is expected that the block store and state
 // store are empty at the time the function is called.
