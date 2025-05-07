@@ -160,6 +160,6 @@ type MempoolTx interface {
 // TxBroadcastStream defines the interface for streaming transactions to broadcast.
 // It provides a channel that will receive transactions to be broadcasted to peers.
 type TxBroadcastStream interface {
-	// GetNextTx returns a channel that will receive transactions to broadcast.
-	GetNextTx() <-chan MempoolTx
+	// GetTxChannel returns a channel that will receive transactions to broadcast.
+	GetTxChannel() <-chan MempoolTx
 }

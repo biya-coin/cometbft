@@ -261,7 +261,7 @@ func (memR *MempoolInterfaceReactor) broadcastTxRoutine() {
 		return
 	}
 
-	txChan := memR.txStream.GetNextTx()
+	txChan := memR.txStream.GetTxChannel()
 
 	for {
 		if !memR.IsRunning() {
