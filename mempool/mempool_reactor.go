@@ -157,7 +157,7 @@ func (memR *MempoolReactor) RemovePeer(peer p2p.Peer, _ interface{}) {
 	peerID := memR.ids.GetForPeer(peer)
 
 	if ch, exists := memR.peerBroadcastChannels.LoadAndDelete(peerID); exists {
-		close(ch.(chan *mempoolTx))
+		close(ch.(chan MempoolTx))
 	}
 
 	memR.ids.Reclaim(peer)
