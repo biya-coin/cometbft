@@ -155,6 +155,7 @@ type MempoolTx interface {
 	GasWanted() int64
 	Tx() types.Tx
 	IsSender(peerID uint16) bool
+	AddSender(peerID uint16) bool
 }
 
 // TxBroadcastStream defines the interface for streaming transactions to broadcast.

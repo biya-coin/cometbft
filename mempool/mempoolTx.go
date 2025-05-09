@@ -51,6 +51,10 @@ func (memTx *mempoolTx) IsSender(peerId uint16) bool {
 	return memTx.isSender(peerId)
 }
 
+func (memTx *mempoolTx) AddSender(peerId uint16) bool {
+	return memTx.addSender(peerId)
+}
+
 func (memTx *mempoolTx) Tx() types.Tx {
 	return memTx.tx
 }
