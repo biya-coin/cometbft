@@ -136,7 +136,7 @@ func StateProvider(stateProvider statesync.StateProvider) Option {
 	}
 }
 
-func WithCustomMempoolOnProxyMempool(customMempool mempl.CustomMempool, txBroadcastStream mempl.TxBroadcastStream) Option {
+func WithCustomMempoolOnProxyMempool(customMempool mempl.Mempool, txBroadcastStream mempl.TxBroadcastStream) Option {
 	return func(n *Node) {
 		proxyMempool, ok := n.mempool.(*mempl.ProxyMempool)
 		if !ok {

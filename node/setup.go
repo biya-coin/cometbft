@@ -260,7 +260,7 @@ func createMempoolAndMempoolReactor(
 		// adding it leads to a cleaner code.
 		return &mempl.NopMempool{}, mempl.NewNopMempoolReactor()
 	case cfg.MempoolTypeProxy:
-		mp := mempl.NewProxyMempool(proxyApp.Mempool())
+		mp := &mempl.ProxyMempool{}
 		reactor := mempl.NewMempoolInterfaceReactor(
 			config.Mempool,
 			mp,
