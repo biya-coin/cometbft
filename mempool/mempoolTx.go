@@ -20,14 +20,12 @@ type mempoolTx struct {
 	senders sync.Map
 }
 
-func NewMempoolTx(height int64, gasWanted int64, tx types.Tx, senderId uint16) MempoolTx {
+func NewMempoolTx(height int64, gasWanted int64, tx types.Tx) MempoolTx {
 	memTx := &mempoolTx{
 		height:    height,
 		gasWanted: gasWanted,
 		tx:        tx,
 	}
-
-	memTx.addSender(senderId)
 
 	return memTx
 }
