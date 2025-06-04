@@ -17,17 +17,14 @@ type mempoolTx struct {
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
-	senders sync.Map
+	senders *sync.Map
 }
 
-func NewMempoolTx(height int64, gasWanted int64, tx types.Tx) MempoolTx {
-	memTx := &mempoolTx{
-		height:    height,
-		gasWanted: gasWanted,
-		tx:        tx,
-	}
-
-	return memTx
+// NewMempoolTx creates a new mempoolTx using the builder pattern
+func NewMempoolTx(tx types.Tx) MempoolTx {
+	return NewMempoolTxBuilder().
+		WithTx(tx).
+		Build()
 }
 
 // Height returns the height for this transaction
@@ -58,4 +55,58 @@ func (memTx *mempoolTx) Tx() types.Tx {
 }
 func (memTx *mempoolTx) GasWanted() int64 {
 	return atomic.LoadInt64(&memTx.gasWanted)
+}
+
+// MempoolTxBuilder is a builder for creating mempoolTx instances
+type MempoolTxBuilder struct {
+	height    int64
+	gasWanted int64
+	tx        types.Tx
+	senders   []uint16
+}
+
+// NewMempoolTxBuilder creates a new builder for mempoolTx
+func NewMempoolTxBuilder() *MempoolTxBuilder {
+	return &MempoolTxBuilder{
+		senders: make([]uint16, 0),
+	}
+}
+
+// WithHeight sets the height for the mempoolTx
+func (b *MempoolTxBuilder) WithHeight(height int64) *MempoolTxBuilder {
+	b.height = height
+	return b
+}
+
+// WithGasWanted sets the gas wanted for the mempoolTx
+func (b *MempoolTxBuilder) WithGasWanted(gasWanted int64) *MempoolTxBuilder {
+	b.gasWanted = gasWanted
+	return b
+}
+
+// WithTx sets the transaction for the mempoolTx
+func (b *MempoolTxBuilder) WithTx(tx types.Tx) *MempoolTxBuilder {
+	b.tx = tx
+	return b
+}
+
+func (b *MempoolTxBuilder) WithSender(sender uint16) *MempoolTxBuilder {
+	b.senders = append(b.senders, sender)
+	return b
+}
+
+// Build creates the final mempoolTx instance
+func (b *MempoolTxBuilder) Build() MempoolTx {
+	senders := &sync.Map{}
+	for _, sender := range b.senders {
+		senders.Store(sender, true)
+	}
+
+	memTx := &mempoolTx{
+		height:    b.height,
+		gasWanted: b.gasWanted,
+		tx:        b.tx,
+		senders:   senders,
+	}
+	return memTx
 }

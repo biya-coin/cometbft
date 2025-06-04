@@ -176,8 +176,11 @@ func addRandomTxsToMempoolAndStream(
 		require.NoError(t, err, "mempool.CheckTx returned an error for tx %X. Error: %v", tx, err)
 		require.EqualValuesf(t, abci.CodeTypeOK, checkTxResCode, "CheckTx callback response code is not OK for tx %X. Got %d", tx, checkTxResCode)
 
-		mempoolTx := NewMempoolTx(1, 100, tx) // height, gasWanted, tx
-		mempoolTx.AddSender(senderID)         // add sender ID
+		mempoolTx := NewMempoolTxBuilder().
+			WithHeight(1).
+			WithTx(tx).
+			WithSender(senderID).
+			Build()
 
 		mempoolTxs[i] = mempoolTx
 	}
