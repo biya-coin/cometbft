@@ -1,5 +1,7 @@
 package mempool
 
+// ProxyMempool is a wrapper around a Mempool and a TxBroadcastStream.
+// It allows setting the underlying Mempool and TxBroadcastStream dynamically.
 type ProxyMempool struct {
 	Mempool
 	TxBroadcastStream
