@@ -15,5 +15,3 @@ func (m *ProxyMempool) SetMempool(mp Mempool) {
 func (m *ProxyMempool) SetTxBroadcastStream(stream TxBroadcastStream) {
 	m.TxBroadcastStream = stream
 }
-
-// TODO: add assertions for all methods
