@@ -44,23 +44,23 @@ func (app *unsyncLocalClient) SetResponseCallback(cb Callback) {
 }
 
 func (app *unsyncLocalClient) CheckTxAsync(ctx context.Context, req *types.CheckTxRequest) (*ReqRes, error) {
-	res, err := app.Application.CheckTx(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return app.callback(
-		types.ToCheckTxRequest(req),
-		types.ToCheckTxResponse(res),
-	), nil
-}
+	reqres := NewReqRes(types.ToCheckTxRequest(req))
 
-func (app *unsyncLocalClient) callback(req *types.Request, res *types.Response) *ReqRes {
-	if app.Callback != nil {
-		app.Callback(req, res)
-	}
-	rr := newLocalReqRes(req, res)
-	rr.callbackInvoked = true
-	return rr
+	go func() {
+		res, err := app.Application.CheckTx(ctx, req)
+		if err != nil {
+			reqres.Response = types.ToExceptionResponse("") // optimistic recheck failed
+		} else {
+			reqres.Response = types.ToCheckTxResponse(res)
+		}
+
+		if app.Callback != nil {
+			app.Callback(reqres.Request, reqres.Response)
+		}
+		reqres.InvokeCallback()
+	}()
+
+	return reqres, nil
 }
 
 // -------------------------------------------------------
