@@ -70,14 +70,14 @@ func (ps reactorTestPeerState) GetHeight() int64 {
 func newMempoolInterfaceWithAppAndConfig(cc proxy.ClientCreator) (*CListMempool, func()) {
 	conf := test.ResetTestRoot("mempool_interface_test")
 
-	appConnMem, _ := cc.NewABCIClient()
+	appConnMem, _ := cc.NewABCIMempoolClient()
 	appConnMem.SetResponseCallback(func(r1 *abci.Request, r2 *abci.Response) {})
 	appConnMem.SetLogger(log.TestingLogger().With("module", "abci-client"))
 	if err := appConnMem.Start(); err != nil {
 		panic(err)
 	}
 
-	mp := NewCListMempool(conf.Mempool, appConnMem, 0)
+	mp := NewCListMempool(conf.Mempool, appConnMem, nil, 0)
 	mp.SetLogger(log.TestingLogger().With("module", "mempool"))
 
 	return mp, func() { os.RemoveAll(conf.RootDir) }
@@ -154,27 +154,25 @@ func addRandomTxsToMempoolAndStream(
 	t *testing.T,
 	mempool Mempool,
 	numTxs int,
-	senderID uint16,
+	senderID p2p.ID,
 ) (types.Txs, []MempoolTx) {
 	t.Helper()
 	txs := make(types.Txs, numTxs)
 	mempoolTxs := make([]MempoolTx, numTxs)
 	for i := 0; i < numTxs; i++ {
-		txKey := fmt.Sprintf("key_mempool_interface_%d_%d_%d", senderID, time.Now().UnixNano(), i)
+		txKey := fmt.Sprintf("key_mempool_interface_%s_%d_%d", senderID, time.Now().UnixNano(), i)
 		txValue := fmt.Sprintf("value_%d", i)
 		tx := types.Tx(fmt.Sprintf("%s=%s", txKey, txValue))
 		txs[i] = tx
 
-		var checkTxResCode uint32
-		err := mempool.CheckTx(tx, func(res *abci.ResponseCheckTx) {
-			checkTxResCode = res.Code
-			if res.IsErr() {
-				t.Logf("CheckTx callback failed for tx %X: %s, code: %d, log: %s, info: %s", tx, res.Log, res.Code, res.Log, res.Info)
-			}
-		}, TxInfo{SenderID: senderID})
+		reqres, err := mempool.CheckTx(tx, senderID)
+		res := reqres.Response.GetCheckTx()
 
+		if res.IsErr() {
+			t.Logf("CheckTx callback failed for tx %X: %s, code: %d, log: %s, info: %s", tx, res.Log, res.Code, res.Log, res.Info)
+		}
 		require.NoError(t, err, "mempool.CheckTx returned an error for tx %X. Error: %v", tx, err)
-		require.EqualValuesf(t, abci.CodeTypeOK, checkTxResCode, "CheckTx callback response code is not OK for tx %X. Got %d", tx, checkTxResCode)
+		require.EqualValuesf(t, abci.CodeTypeOK, res.Code, "CheckTx callback response code is not OK for tx %X. Got %d", tx, res.Code)
 
 		mempoolTx := NewMempoolTxBuilder().
 			WithHeight(1).
@@ -282,13 +280,13 @@ func TestMempoolInterfaceReactor_BroadcastTxsMessage(t *testing.T) {
 	}()
 
 	for _, r := range reactors {
-		for _, peer := range r.Switch.Peers().List() {
+		r.Switch.Peers().ForEach(func(peer p2p.Peer) {
 			peer.Set(types.PeerStateKey, reactorTestPeerState{height: 1})
-		}
+		})
 	}
 
 	// Use the mempool from the first reactor
-	addedTxs, mempoolTxsToSend := addRandomTxsToMempoolAndStream(t, reactors[0].mempool, testNumTxsMempoolInterface, UnknownPeerID)
+	addedTxs, mempoolTxsToSend := addRandomTxsToMempoolAndStream(t, reactors[0].mempool, testNumTxsMempoolInterface, p2p.ID("xyz"))
 
 	for _, memTx := range mempoolTxsToSend {
 		// Send to the txStream associated with the first reactor

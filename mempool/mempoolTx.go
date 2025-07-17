@@ -23,7 +23,7 @@ type mempoolTx struct {
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
-	senders *sync.Map
+	senders sync.Map
 }
 
 // NewMempoolTx creates a new mempoolTx using the builder pattern
@@ -48,6 +48,10 @@ func (memTx *mempoolTx) GasWanted() int64 {
 func (memTx *mempoolTx) IsSender(peerID p2p.ID) bool {
 	_, ok := memTx.senders.Load(peerID)
 	return ok
+}
+
+func (memTx *mempoolTx) AddSender(peerID p2p.ID) bool {
+	return memTx.addSender(peerID)
 }
 
 // Add the peer ID to the list of senders. Return true iff it exists already in the list.
@@ -75,13 +79,13 @@ type MempoolTxBuilder struct {
 	height    int64
 	gasWanted int64
 	tx        types.Tx
-	senders   []uint16
+	senders   []p2p.ID
 }
 
 // NewMempoolTxBuilder creates a new builder for mempoolTx
 func NewMempoolTxBuilder() *MempoolTxBuilder {
 	return &MempoolTxBuilder{
-		senders: make([]uint16, 0),
+		senders: make([]p2p.ID, 0),
 	}
 }
 
@@ -103,23 +107,20 @@ func (b *MempoolTxBuilder) WithTx(tx types.Tx) *MempoolTxBuilder {
 	return b
 }
 
-func (b *MempoolTxBuilder) WithSender(sender uint16) *MempoolTxBuilder {
+func (b *MempoolTxBuilder) WithSender(sender p2p.ID) *MempoolTxBuilder {
 	b.senders = append(b.senders, sender)
 	return b
 }
 
 // Build creates the final mempoolTx instance
 func (b *MempoolTxBuilder) Build() MempoolTx {
-	senders := &sync.Map{}
-	for _, sender := range b.senders {
-		senders.Store(sender, true)
-	}
-
 	memTx := &mempoolTx{
 		height:    b.height,
 		gasWanted: b.gasWanted,
 		tx:        b.tx,
-		senders:   senders,
+	}
+	for _, sender := range b.senders {
+		memTx.senders.Store(sender, struct{}{})
 	}
 	return memTx
 }

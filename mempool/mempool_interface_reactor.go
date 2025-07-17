@@ -8,10 +8,10 @@ import (
 
 	"fmt"
 
+	protomem "github.com/cometbft/cometbft/api/cometbft/mempool/v2"
 	cfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/p2p"
-	protomem "github.com/cometbft/cometbft/proto/tendermint/mempool"
 	"github.com/cometbft/cometbft/types"
 	"golang.org/x/sync/semaphore"
 )
@@ -23,7 +23,6 @@ type MempoolInterfaceReactor struct {
 	p2p.BaseReactor
 	config  *cfg.MempoolConfig
 	mempool Mempool
-	ids     *mempoolIDs
 
 	// Semaphores to keep track of how many connections to peers are active for broadcasting
 	// transactions. Each semaphore has a capacity that puts an upper bound on the number of
@@ -43,7 +42,6 @@ func NewMempoolInterfaceReactor(config *cfg.MempoolConfig, mempool Mempool, txSt
 	memR := &MempoolInterfaceReactor{
 		config:                config,
 		mempool:               mempool,
-		ids:                   newMempoolIDs(),
 		peerBroadcastChannels: sync.Map{},
 		txStream:              txStream,
 	}
@@ -56,7 +54,6 @@ func NewMempoolInterfaceReactor(config *cfg.MempoolConfig, mempool Mempool, txSt
 
 // InitPeer implements Reactor by creating a state for the peer.
 func (memR *MempoolInterfaceReactor) InitPeer(peer p2p.Peer) p2p.Peer {
-	memR.ids.ReserveForPeer(peer)
 	return peer
 }
 
@@ -136,11 +133,10 @@ func (memR *MempoolInterfaceReactor) AddPeer(peer p2p.Peer) {
 				return
 			}
 
-			peerID := memR.ids.GetForPeer(peer)
 			peerChan := make(chan MempoolTx, memR.config.Size)
 
 			// Store the channel atomically
-			if _, loaded := memR.peerBroadcastChannels.LoadOrStore(peerID, peerChan); loaded {
+			if _, loaded := memR.peerBroadcastChannels.LoadOrStore(peer.ID(), peerChan); loaded {
 				// If channel already exists, close the new one and return
 				close(peerChan)
 				return
@@ -154,13 +150,9 @@ func (memR *MempoolInterfaceReactor) AddPeer(peer p2p.Peer) {
 
 // RemovePeer implements Reactor.
 func (memR *MempoolInterfaceReactor) RemovePeer(peer p2p.Peer, _ interface{}) {
-	peerID := memR.ids.GetForPeer(peer)
-
-	if ch, exists := memR.peerBroadcastChannels.LoadAndDelete(peerID); exists {
+	if ch, exists := memR.peerBroadcastChannels.LoadAndDelete(peer.ID()); exists {
 		close(ch.(chan MempoolTx))
 	}
-
-	memR.ids.Reclaim(peer)
 }
 
 // Receive implements Reactor.
@@ -174,15 +166,11 @@ func (memR *MempoolInterfaceReactor) Receive(e p2p.Envelope) {
 			memR.Logger.Error("received empty txs from peer", "src", e.Src)
 			return
 		}
-		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(e.Src)}
-		if e.Src != nil {
-			txInfo.SenderP2PID = e.Src.ID()
-		}
 
 		var err error
 		for _, tx := range protoTxs {
 			ntx := types.Tx(tx)
-			err = memR.mempool.CheckTx(ntx, nil, txInfo)
+			_, err = memR.mempool.CheckTx(ntx, e.Src.ID())
 			if err != nil {
 				switch {
 				case errors.Is(err, ErrTxInCache):
@@ -206,8 +194,6 @@ func (memR *MempoolInterfaceReactor) Receive(e p2p.Envelope) {
 
 // Send new mempool txs to peer.
 func (memR *MempoolInterfaceReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan MempoolTx) {
-	peerID := memR.ids.GetForPeer(peer)
-
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
 		if !memR.IsRunning() || !peer.IsRunning() {
@@ -237,7 +223,7 @@ func (memR *MempoolInterfaceReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerC
 				continue
 			}
 
-			if !memTx.IsSender(peerID) {
+			if !memTx.IsSender(peer.ID()) {
 				success := peer.Send(p2p.Envelope{
 					ChannelID: MempoolChannel,
 					Message:   &protomem.Txs{Txs: [][]byte{memTx.Tx()}},
@@ -272,7 +258,7 @@ func (memR *MempoolInterfaceReactor) broadcastTxRoutine() {
 		case tx := <-txChan:
 			if tx != nil {
 				memR.peerBroadcastChannels.Range(func(key, value interface{}) bool {
-					peerID := key.(uint16)
+					peerID := key.(p2p.ID)
 					ch := value.(chan MempoolTx)
 
 					select {
