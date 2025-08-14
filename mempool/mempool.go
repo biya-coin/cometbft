@@ -190,6 +190,7 @@ type MempoolTx interface {
 	Tx() types.Tx
 	IsSender(peerID p2p.ID) bool
 	AddSender(peerID p2p.ID) bool
+	Senders() []p2p.ID
 }
 
 // TxBroadcastStream defines the interface for streaming transactions to broadcast.

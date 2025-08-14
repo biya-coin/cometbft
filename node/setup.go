@@ -328,6 +328,7 @@ func createMempoolAndMempoolReactor(
 			config.Mempool,
 			mp,
 			mp,
+			waitSync,
 		)
 		if config.Consensus.WaitForTxs() {
 			mp.EnableTxsAvailable()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"fmt"
@@ -24,6 +25,9 @@ type MempoolInterfaceReactor struct {
 	config  *cfg.MempoolConfig
 	mempool Mempool
 
+	waitSync   atomic.Bool
+	waitSyncCh chan struct{} // for signaling when to start receiving and sending txs
+
 	// Semaphores to keep track of how many connections to peers are active for broadcasting
 	// transactions. Each semaphore has a capacity that puts an upper bound on the number of
 	// connections for different groups of peers.
@@ -38,14 +42,19 @@ type MempoolInterfaceReactor struct {
 }
 
 // NewMempoolInterfaceReactor returns a new MempoolInterfaceReactor with the given config and mempool.
-func NewMempoolInterfaceReactor(config *cfg.MempoolConfig, mempool Mempool, txStream TxBroadcastStream) p2p.Reactor {
+func NewMempoolInterfaceReactor(config *cfg.MempoolConfig, mempool Mempool, txStream TxBroadcastStream, waitSync bool) *MempoolInterfaceReactor {
 	memR := &MempoolInterfaceReactor{
 		config:                config,
 		mempool:               mempool,
 		peerBroadcastChannels: sync.Map{},
 		txStream:              txStream,
+		waitSync:              atomic.Bool{},
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
+	if waitSync {
+		memR.waitSync.Store(true)
+		memR.waitSyncCh = make(chan struct{})
+	}
 	memR.activePersistentPeersSemaphore = semaphore.NewWeighted(int64(memR.config.ExperimentalMaxGossipConnectionsToPersistentPeers))
 	memR.activeNonPersistentPeersSemaphore = semaphore.NewWeighted(int64(memR.config.ExperimentalMaxGossipConnectionsToNonPersistentPeers))
 
@@ -192,6 +201,22 @@ func (memR *MempoolInterfaceReactor) Receive(e p2p.Envelope) {
 	// broadcasting happens from go routines per peer
 }
 
+func (memR *MempoolInterfaceReactor) EnableInOutTxs() {
+	memR.Logger.Info("Enabling inbound and outbound transactions")
+	if !memR.waitSync.CompareAndSwap(true, false) {
+		return
+	}
+
+	// Releases all the blocked broadcastTxRoutine instances.
+	if memR.config.Broadcast {
+		close(memR.waitSyncCh)
+	}
+}
+
+func (memR *MempoolInterfaceReactor) WaitSync() bool {
+	return memR.waitSync.Load()
+}
+
 // Send new mempool txs to peer.
 func (memR *MempoolInterfaceReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerChan chan MempoolTx) {
 	for {
@@ -241,6 +266,16 @@ func (memR *MempoolInterfaceReactor) broadcastTxPeerRoutine(peer p2p.Peer, peerC
 
 // broadcastTxRoutine broadcasts transactions from the mempool to all peers.
 func (memR *MempoolInterfaceReactor) broadcastTxRoutine() {
+	// If the node is catching up, don't start this routine immediately.
+	if memR.WaitSync() {
+		select {
+		case <-memR.waitSyncCh:
+			// EnableInOutTxs() has set WaitSync() to false.
+		case <-memR.Quit():
+			return
+		}
+	}
+
 	// Check if txStream is set
 	if memR.txStream == nil {
 		memR.Logger.Error("txStream is not set, broadcasting is disabled")
