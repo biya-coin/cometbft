@@ -107,7 +107,7 @@ func makeAndConnectMempoolInterfaceReactors(
 
 		txStreams[i] = newMockTxBroadcastStream(logger.With("validator", i, "module", "txstream"))
 
-		reactors[i] = NewMempoolInterfaceReactor(conf.Mempool, mempools[i], txStreams[i]).(*MempoolInterfaceReactor)
+		reactors[i] = NewMempoolInterfaceReactor(conf.Mempool, mempools[i], txStreams[i], false)
 		reactors[i].SetLogger(logger.With("validator", i, "module", "mempool-reactor"))
 	}
 
