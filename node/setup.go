@@ -625,7 +625,7 @@ func LoadStateFromDBOrGenesisDocProviderWithConfig(
 	config *cfg.Config,
 ) (sm.State, *types.GenesisDoc, error) {
 	// Get genesis doc hash
-	genDocHash, err := stateDB.Get(genesisDocHashKey)
+	_, err := stateDB.Get(genesisDocHashKey)
 	if err != nil {
 		return sm.State{}, nil, fmt.Errorf("error retrieving genesis doc hash: %w", err)
 	}
@@ -649,16 +649,16 @@ func LoadStateFromDBOrGenesisDocProviderWithConfig(
 		}
 	}
 
-	if len(genDocHash) == 0 {
-		// Save the genDoc hash in the store if it doesn't already exist for future verification
-		if err = stateDB.SetSync(genesisDocHashKey, csGenDoc.Sha256Checksum); err != nil {
-			return sm.State{}, nil, fmt.Errorf("failed to save genesis doc hash to db: %w", err)
-		}
-	} else {
-		if !bytes.Equal(genDocHash, csGenDoc.Sha256Checksum) {
-			return sm.State{}, nil, errors.New("genesis doc hash in db does not match loaded genesis doc")
-		}
-	}
+	// if len(genDocHash) == 0 {
+	// 	// Save the genDoc hash in the store if it doesn't already exist for future verification
+	// 	if err = stateDB.SetSync(genesisDocHashKey, csGenDoc.Sha256Checksum); err != nil {
+	// 		return sm.State{}, nil, fmt.Errorf("failed to save genesis doc hash to db: %w", err)
+	// 	}
+	// } else {
+	// 	if !bytes.Equal(genDocHash, csGenDoc.Sha256Checksum) {
+	// 		return sm.State{}, nil, errors.New("genesis doc hash in db does not match loaded genesis doc")
+	// 	}
+	// }
 
 	dbKeyLayoutVersion := ""
 	if config != nil {
