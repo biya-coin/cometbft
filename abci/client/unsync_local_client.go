@@ -57,6 +57,9 @@ func (app *unsyncLocalClient) CheckTxAsync(ctx context.Context, req *types.Check
 		if app.Callback != nil {
 			app.Callback(reqres.Request, reqres.Response)
 		}
+
+		reqres.Done()
+
 		reqres.InvokeCallback()
 	}()
 
