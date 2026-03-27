@@ -3,7 +3,7 @@ package timer
 import (
 	"time"
 
-	cmtsync "github.com/cometbft/cometbft/libs/sync"
+	cmtsync "github.com/biya-coin/cometbft/libs/sync"
 )
 
 /*

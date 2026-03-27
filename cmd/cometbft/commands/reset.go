@@ -7,11 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	kt "github.com/cometbft/cometbft/internal/keytypes"
-	cmtos "github.com/cometbft/cometbft/internal/os"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/privval"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	kt "github.com/biya-coin/cometbft/internal/keytypes"
+	cmtos "github.com/biya-coin/cometbft/internal/os"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/privval"
 )
 
 // ResetAllCmd removes the database of this CometBFT core

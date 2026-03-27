@@ -18,18 +18,18 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	abciclient "github.com/cometbft/cometbft/abci/client"
-	abciclimocks "github.com/cometbft/cometbft/abci/client/mocks"
-	"github.com/cometbft/cometbft/abci/example/kvstore"
-	abciserver "github.com/cometbft/cometbft/abci/server"
-	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/config"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/internal/test"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/libs/service"
-	"github.com/cometbft/cometbft/proxy"
-	"github.com/cometbft/cometbft/types"
+	abciclient "github.com/biya-coin/cometbft/abci/client"
+	abciclimocks "github.com/biya-coin/cometbft/abci/client/mocks"
+	"github.com/biya-coin/cometbft/abci/example/kvstore"
+	abciserver "github.com/biya-coin/cometbft/abci/server"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	"github.com/biya-coin/cometbft/config"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/internal/test"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/libs/service"
+	"github.com/biya-coin/cometbft/proxy"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // A cleanupFunc cleans up any config / test files created for a particular
@@ -1035,7 +1035,7 @@ func TestMempoolAsyncRecheckTxReturnError(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-// This test used to cause a data race when rechecking (see https://github.com/cometbft/cometbft/issues/1827).
+// This test used to cause a data race when rechecking (see https://github.com/biya-coin/cometbft/issues/1827).
 func TestMempoolRecheckRace(t *testing.T) {
 	mp, cleanup := newMempoolWithAsyncConnection(t)
 	defer cleanup()

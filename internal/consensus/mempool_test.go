@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	dbm "github.com/cometbft/cometbft-db"
-	"github.com/cometbft/cometbft/abci/example/kvstore"
-	abci "github.com/cometbft/cometbft/abci/types"
-	mempl "github.com/cometbft/cometbft/mempool"
-	sm "github.com/cometbft/cometbft/state"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/abci/example/kvstore"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	mempl "github.com/biya-coin/cometbft/mempool"
+	sm "github.com/biya-coin/cometbft/state"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // for testing.

@@ -1,6 +1,6 @@
 #! /bin/bash
 
-PKGS=$(go list github.com/cometbft/cometbft/...)
+PKGS=$(go list biya-coin/cometbft/...)
 
 set -e
 

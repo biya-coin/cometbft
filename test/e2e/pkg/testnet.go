@@ -16,16 +16,16 @@ import (
 
 	_ "embed"
 
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/crypto/bls12381"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/crypto/secp256k1"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
-	grpcclient "github.com/cometbft/cometbft/rpc/grpc/client"
-	grpcprivileged "github.com/cometbft/cometbft/rpc/grpc/client/privileged"
-	"github.com/cometbft/cometbft/test/e2e/app"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/crypto/bls12381"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	"github.com/biya-coin/cometbft/crypto/secp256k1"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	rpchttp "github.com/biya-coin/cometbft/rpc/client/http"
+	grpcclient "github.com/biya-coin/cometbft/rpc/grpc/client"
+	grpcprivileged "github.com/biya-coin/cometbft/rpc/grpc/client/privileged"
+	"github.com/biya-coin/cometbft/test/e2e/app"
+	"github.com/biya-coin/cometbft/types"
 )
 
 const (

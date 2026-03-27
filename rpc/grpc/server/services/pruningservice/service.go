@@ -7,10 +7,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pbsvc "github.com/cometbft/cometbft/api/cometbft/services/pruning/v1"
-	"github.com/cometbft/cometbft/internal/rpctrace"
-	"github.com/cometbft/cometbft/libs/log"
-	sm "github.com/cometbft/cometbft/state"
+	pbsvc "github.com/biya-coin/cometbft/api/cometbft/services/pruning/v1"
+	"github.com/biya-coin/cometbft/internal/rpctrace"
+	"github.com/biya-coin/cometbft/libs/log"
+	sm "github.com/biya-coin/cometbft/state"
 )
 
 type pruningServiceServer struct {

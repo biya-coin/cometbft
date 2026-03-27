@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	cmtsync "github.com/cometbft/cometbft/libs/sync"
-	"github.com/cometbft/cometbft/p2p"
+	cmtsync "github.com/biya-coin/cometbft/libs/sync"
+	"github.com/biya-coin/cometbft/p2p"
 )
 
 // errDone is returned by chunkQueue.Next() when all chunks have been returned.

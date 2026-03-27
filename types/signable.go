@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/cometbft/cometbft/crypto/bls12381"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	cmtmath "github.com/cometbft/cometbft/libs/math"
+	"github.com/biya-coin/cometbft/crypto/bls12381"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	cmtmath "github.com/biya-coin/cometbft/libs/math"
 )
 
 // MaxSignatureSize is a maximum allowed signature size for the Proposal

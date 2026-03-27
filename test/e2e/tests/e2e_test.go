@@ -10,13 +10,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
-	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
-	"github.com/cometbft/cometbft/test/e2e/app"
-	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
-	"github.com/cometbft/cometbft/test/e2e/pkg/infra/docker"
-	"github.com/cometbft/cometbft/types"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	rpchttp "github.com/biya-coin/cometbft/rpc/client/http"
+	rpctypes "github.com/biya-coin/cometbft/rpc/core/types"
+	"github.com/biya-coin/cometbft/test/e2e/app"
+	e2e "github.com/biya-coin/cometbft/test/e2e/pkg"
+	"github.com/biya-coin/cometbft/test/e2e/pkg/infra/docker"
+	"github.com/biya-coin/cometbft/types"
 )
 
 func init() {

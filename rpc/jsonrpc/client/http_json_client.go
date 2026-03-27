@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	cmtsync "github.com/cometbft/cometbft/libs/sync"
-	"github.com/cometbft/cometbft/rpc/jsonrpc/types"
+	cmtsync "github.com/biya-coin/cometbft/libs/sync"
+	"github.com/biya-coin/cometbft/rpc/jsonrpc/types"
 )
 
 const (

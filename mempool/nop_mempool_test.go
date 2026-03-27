@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/types"
 )
 
 var tx = types.Tx([]byte{0x01})

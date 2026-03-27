@@ -8,11 +8,11 @@ import (
 
 	"github.com/cosmos/gogoproto/proto"
 
-	"github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/internal/cmap"
-	"github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/libs/service"
-	"github.com/cometbft/cometbft/p2p/conn"
+	"github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/internal/cmap"
+	"github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/libs/service"
+	"github.com/biya-coin/cometbft/p2p/conn"
 )
 
 const (

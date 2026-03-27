@@ -5,15 +5,15 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	kt "github.com/cometbft/cometbft/internal/keytypes"
-	cmtos "github.com/cometbft/cometbft/internal/os"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/privval"
-	"github.com/cometbft/cometbft/types"
-	cmttime "github.com/cometbft/cometbft/types/time"
+	cfg "github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	kt "github.com/biya-coin/cometbft/internal/keytypes"
+	cmtos "github.com/biya-coin/cometbft/internal/os"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/privval"
+	"github.com/biya-coin/cometbft/types"
+	cmttime "github.com/biya-coin/cometbft/types/time"
 )
 
 // InitFilesCmd initializes a fresh CometBFT instance.

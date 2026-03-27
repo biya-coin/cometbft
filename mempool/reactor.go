@@ -9,14 +9,14 @@ import (
 
 	"golang.org/x/sync/semaphore"
 
-	abcicli "github.com/cometbft/cometbft/abci/client"
-	protomem "github.com/cometbft/cometbft/api/cometbft/mempool/v2"
-	cfg "github.com/cometbft/cometbft/config"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/libs/log"
-	cmtsync "github.com/cometbft/cometbft/libs/sync"
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/types"
+	abcicli "github.com/biya-coin/cometbft/abci/client"
+	protomem "github.com/biya-coin/cometbft/api/cometbft/mempool/v2"
+	cfg "github.com/biya-coin/cometbft/config"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/libs/log"
+	cmtsync "github.com/biya-coin/cometbft/libs/sync"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // A number in the open interval (0, 100) representing a percentage of
@@ -380,7 +380,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		// We are paying the cost of computing the transaction hash in
 		// any case, even when logger level > debug. So it only once.
-		// See: https://github.com/cometbft/cometbft/issues/4167
+		// See: https://github.com/biya-coin/cometbft/issues/4167
 		txKey := entry.Tx().Key()
 		txHash := txKey.Hash()
 

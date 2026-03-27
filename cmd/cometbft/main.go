@@ -4,11 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
-	cmd "github.com/cometbft/cometbft/cmd/cometbft/commands"
-	"github.com/cometbft/cometbft/cmd/cometbft/commands/debug"
-	cfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/libs/cli"
-	nm "github.com/cometbft/cometbft/node"
+	cmd "github.com/biya-coin/cometbft/cmd/cometbft/commands"
+	"github.com/biya-coin/cometbft/cmd/cometbft/commands/debug"
+	cfg "github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/libs/cli"
+	nm "github.com/biya-coin/cometbft/node"
 )
 
 func main() {

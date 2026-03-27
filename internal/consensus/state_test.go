@@ -12,20 +12,20 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cometbft/cometbft/abci/example/kvstore"
-	abci "github.com/cometbft/cometbft/abci/types"
-	abcimocks "github.com/cometbft/cometbft/abci/types/mocks"
-	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
-	"github.com/cometbft/cometbft/crypto/tmhash"
-	cstypes "github.com/cometbft/cometbft/internal/consensus/types"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/internal/test"
-	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/libs/protoio"
-	cmtpubsub "github.com/cometbft/cometbft/libs/pubsub"
-	p2pmock "github.com/cometbft/cometbft/p2p/mock"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/abci/example/kvstore"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	abcimocks "github.com/biya-coin/cometbft/abci/types/mocks"
+	cmtproto "github.com/biya-coin/cometbft/api/cometbft/types/v1"
+	"github.com/biya-coin/cometbft/crypto/tmhash"
+	cstypes "github.com/biya-coin/cometbft/internal/consensus/types"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/internal/test"
+	cmtbytes "github.com/biya-coin/cometbft/libs/bytes"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/libs/protoio"
+	cmtpubsub "github.com/biya-coin/cometbft/libs/pubsub"
+	p2pmock "github.com/biya-coin/cometbft/p2p/mock"
+	"github.com/biya-coin/cometbft/types"
 )
 
 /*
@@ -1367,7 +1367,7 @@ func TestState_MissingProposalValidBlockReceivedTimeout(t *testing.T) {
 	assert.Equal(t, rs.ValidBlock.Hash(), blockID.Hash)
 
 	// Since we didn't see the round's Proposal, we should prevote nil.
-	// NOTE: introduced by https://github.com/cometbft/cometbft/pull/1203.
+	// NOTE: introduced by https://github.com/biya-coin/cometbft/pull/1203.
 	// In branches v0.{34,37,38}.x, the node prevotes for the valid block.
 	ensurePrevote(voteCh, height, round)
 	validatePrevote(t, cs1, round, vss[0], nil)

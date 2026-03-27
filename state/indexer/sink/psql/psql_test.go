@@ -21,10 +21,10 @@ import (
 
 	_ "github.com/lib/pq"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-	tmlog "github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/state/txindex"
-	"github.com/cometbft/cometbft/types"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	tmlog "github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/state/txindex"
+	"github.com/biya-coin/cometbft/types"
 )
 
 var (

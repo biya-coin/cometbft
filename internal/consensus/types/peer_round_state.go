@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cometbft/cometbft/internal/bits"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/internal/bits"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // -----------------------------------------------------------------------------

@@ -12,12 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
-	"github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/mock"
-	"github.com/cometbft/cometbft/types"
+	tmp2p "github.com/biya-coin/cometbft/api/cometbft/p2p/v1"
+	"github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/p2p/mock"
+	"github.com/biya-coin/cometbft/types"
 )
 
 var cfg *config.P2PConfig
@@ -305,7 +305,7 @@ func TestConnectionSpeedForPeerReceivedFromSeed(t *testing.T) {
 	assertPeersWithTimeout(t, []*p2p.Switch{node}, 10*time.Second, 2)
 
 	// 6. Assert that the configured maximum number of inbound/outbound peers
-	// are respected, see https://github.com/cometbft/cometbft/issues/486
+	// are respected, see https://github.com/biya-coin/cometbft/issues/486
 	outbound, inbound, dialing := node.NumPeers()
 	assert.LessOrEqual(t, inbound, cfg.MaxNumInboundPeers)
 	assert.LessOrEqual(t, outbound, cfg.MaxNumOutboundPeers)

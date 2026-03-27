@@ -5,10 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	kt "github.com/cometbft/cometbft/internal/keytypes"
-	cmtjson "github.com/cometbft/cometbft/libs/json"
-	"github.com/cometbft/cometbft/privval"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	kt "github.com/biya-coin/cometbft/internal/keytypes"
+	cmtjson "github.com/biya-coin/cometbft/libs/json"
+	"github.com/biya-coin/cometbft/privval"
 )
 
 // GenValidatorCmd allows the generation of a keypair for a

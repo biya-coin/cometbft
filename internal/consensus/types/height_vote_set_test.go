@@ -6,12 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	cfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto/tmhash"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/internal/test"
-	"github.com/cometbft/cometbft/types"
-	cmttime "github.com/cometbft/cometbft/types/time"
+	cfg "github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/crypto/tmhash"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/internal/test"
+	"github.com/biya-coin/cometbft/types"
+	cmttime "github.com/biya-coin/cometbft/types/time"
 )
 
 var config *cfg.Config // NOTE: must be reset for each _test.go file

@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/crypto/bls12381"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/crypto/secp256k1"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/crypto/bls12381"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	"github.com/biya-coin/cometbft/crypto/secp256k1"
 )
 
 type unsupportedPubKey struct{}

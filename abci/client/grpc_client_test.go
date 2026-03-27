@@ -13,10 +13,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	abciserver "github.com/cometbft/cometbft/abci/server"
-	"github.com/cometbft/cometbft/abci/types"
-	cmtnet "github.com/cometbft/cometbft/internal/net"
-	"github.com/cometbft/cometbft/libs/log"
+	abciserver "github.com/biya-coin/cometbft/abci/server"
+	"github.com/biya-coin/cometbft/abci/types"
+	cmtnet "github.com/biya-coin/cometbft/internal/net"
+	"github.com/biya-coin/cometbft/libs/log"
 )
 
 func TestGRPC(t *testing.T) {

@@ -3,10 +3,10 @@ package privval
 import (
 	"fmt"
 
-	pvproto "github.com/cometbft/cometbft/api/cometbft/privval/v1"
-	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/types"
+	pvproto "github.com/biya-coin/cometbft/api/cometbft/privval/v1"
+	cmtproto "github.com/biya-coin/cometbft/api/cometbft/types/v1"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/types"
 )
 
 func DefaultValidationRequestHandler(

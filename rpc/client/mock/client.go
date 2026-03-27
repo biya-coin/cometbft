@@ -18,13 +18,13 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/cometbft/cometbft/libs/bytes"
-	"github.com/cometbft/cometbft/libs/service"
-	"github.com/cometbft/cometbft/rpc/client"
-	"github.com/cometbft/cometbft/rpc/core"
-	ctypes "github.com/cometbft/cometbft/rpc/core/types"
-	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/libs/bytes"
+	"github.com/biya-coin/cometbft/libs/service"
+	"github.com/biya-coin/cometbft/rpc/client"
+	"github.com/biya-coin/cometbft/rpc/core"
+	ctypes "github.com/biya-coin/cometbft/rpc/core/types"
+	rpctypes "github.com/biya-coin/cometbft/rpc/jsonrpc/types"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // Client wraps arbitrary implementations of the various interfaces.

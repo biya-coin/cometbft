@@ -10,13 +10,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	cfg "github.com/cometbft/cometbft/config"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/libs/bytes"
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/privval"
-	"github.com/cometbft/cometbft/types"
-	cmttime "github.com/cometbft/cometbft/types/time"
+	cfg "github.com/biya-coin/cometbft/config"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/libs/bytes"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/privval"
+	"github.com/biya-coin/cometbft/types"
+	cmttime "github.com/biya-coin/cometbft/types/time"
 )
 
 var (

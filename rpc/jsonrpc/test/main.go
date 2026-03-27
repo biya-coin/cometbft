@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	cmtos "github.com/cometbft/cometbft/internal/os"
-	"github.com/cometbft/cometbft/libs/log"
-	rpcserver "github.com/cometbft/cometbft/rpc/jsonrpc/server"
-	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
+	cmtos "github.com/biya-coin/cometbft/internal/os"
+	"github.com/biya-coin/cometbft/libs/log"
+	rpcserver "github.com/biya-coin/cometbft/rpc/jsonrpc/server"
+	rpctypes "github.com/biya-coin/cometbft/rpc/jsonrpc/types"
 )
 
 var routes = map[string]*rpcserver.RPCFunc{

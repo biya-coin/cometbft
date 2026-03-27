@@ -41,7 +41,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
           VERSION_REF="${VERSION//[\.]/}"
-          CHANGELOG_URL="https://github.com/cometbft/cometbft/blob/${VERSION}/CHANGELOG.md#${VERSION_REF}"
+          CHANGELOG_URL="https://biya-coin/cometbft/blob/${VERSION}/CHANGELOG.md#${VERSION_REF}"
           echo "See the [CHANGELOG](${CHANGELOG_URL}) for this release." > ../release_notes.md
 
       - name: Release

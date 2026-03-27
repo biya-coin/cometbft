@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
-	"github.com/cometbft/cometbft/crypto"
-	ce "github.com/cometbft/cometbft/crypto/encoding"
-	"github.com/cometbft/cometbft/internal/keytypes"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
+	cmtproto "github.com/biya-coin/cometbft/api/cometbft/types/v1"
+	"github.com/biya-coin/cometbft/crypto"
+	ce "github.com/biya-coin/cometbft/crypto/encoding"
+	"github.com/biya-coin/cometbft/internal/keytypes"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
 )
 
 // ErrUnsupportedPubKeyType is returned when a public key type is not supported.

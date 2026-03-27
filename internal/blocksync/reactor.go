@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	bcproto "github.com/cometbft/cometbft/api/cometbft/blocksync/v1"
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/p2p"
-	sm "github.com/cometbft/cometbft/state"
-	"github.com/cometbft/cometbft/store"
-	"github.com/cometbft/cometbft/types"
+	bcproto "github.com/biya-coin/cometbft/api/cometbft/blocksync/v1"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/p2p"
+	sm "github.com/biya-coin/cometbft/state"
+	"github.com/biya-coin/cometbft/store"
+	"github.com/biya-coin/cometbft/types"
 )
 
 const (

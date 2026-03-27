@@ -1,4 +1,4 @@
-project_url = 'https://github.com/cometbft/cometbft'
+project_url = 'https://github.com/biya-coin/cometbft'
 
 sort_releases_by = [
     "date",

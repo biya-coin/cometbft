@@ -6,10 +6,10 @@ import (
 
 	"google.golang.org/grpc"
 
-	pbpruningsvc "github.com/cometbft/cometbft/api/cometbft/services/pruning/v1"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/rpc/grpc/server/services/pruningservice"
-	sm "github.com/cometbft/cometbft/state"
+	pbpruningsvc "github.com/biya-coin/cometbft/api/cometbft/services/pruning/v1"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/rpc/grpc/server/services/pruningservice"
+	sm "github.com/biya-coin/cometbft/state"
 )
 
 // Option is any function that allows for configuration of the gRPC server

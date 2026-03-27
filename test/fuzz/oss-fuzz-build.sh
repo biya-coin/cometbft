@@ -3,7 +3,7 @@
 # See https://github.com/google/oss-fuzz/blob/master/projects/tendermint/build.sh
 set -euo pipefail
 
-export FUZZ_ROOT="github.com/cometbft/cometbft"
+export FUZZ_ROOT="biya-coin/cometbft"
 
 build_go_fuzzer() {
 	local function="$1"

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	cmtmath "github.com/cometbft/cometbft/libs/math"
-	"github.com/cometbft/cometbft/types"
+	cmtmath "github.com/biya-coin/cometbft/libs/math"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // DefaultTrustLevel - new header can be trusted if at least one correct

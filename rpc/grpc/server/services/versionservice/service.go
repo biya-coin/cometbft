@@ -3,8 +3,8 @@ package versionservice
 import (
 	"context"
 
-	pbsvc "github.com/cometbft/cometbft/api/cometbft/services/version/v1"
-	"github.com/cometbft/cometbft/version"
+	pbsvc "github.com/biya-coin/cometbft/api/cometbft/services/version/v1"
+	"github.com/biya-coin/cometbft/version"
 )
 
 type versionServiceServer struct{}

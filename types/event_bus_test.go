@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-	cmtpubsub "github.com/cometbft/cometbft/libs/pubsub"
-	cmtquery "github.com/cometbft/cometbft/libs/pubsub/query"
-	cmttime "github.com/cometbft/cometbft/types/time"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	cmtpubsub "github.com/biya-coin/cometbft/libs/pubsub"
+	cmtquery "github.com/biya-coin/cometbft/libs/pubsub/query"
+	cmttime "github.com/biya-coin/cometbft/types/time"
 )
 
 func TestEventBusPublishEventTx(t *testing.T) {

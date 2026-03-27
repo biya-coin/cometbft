@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
-	"github.com/cometbft/cometbft/test/e2e/pkg/exec"
-	"github.com/cometbft/cometbft/test/e2e/pkg/infra"
+	e2e "github.com/biya-coin/cometbft/test/e2e/pkg"
+	"github.com/biya-coin/cometbft/test/e2e/pkg/exec"
+	"github.com/biya-coin/cometbft/test/e2e/pkg/infra"
 )
 
 var _ infra.Provider = (*Provider)(nil)

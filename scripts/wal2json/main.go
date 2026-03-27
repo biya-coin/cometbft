@@ -13,8 +13,8 @@ import (
 	"io"
 	"os"
 
-	cs "github.com/cometbft/cometbft/internal/consensus"
-	cmtjson "github.com/cometbft/cometbft/libs/json"
+	cs "github.com/biya-coin/cometbft/internal/consensus"
+	cmtjson "github.com/biya-coin/cometbft/libs/json"
 )
 
 func main() {

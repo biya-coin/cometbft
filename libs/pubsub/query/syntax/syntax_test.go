@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cometbft/cometbft/libs/pubsub/query/syntax"
+	"github.com/biya-coin/cometbft/libs/pubsub/query/syntax"
 )
 
 func TestScanner(t *testing.T) {

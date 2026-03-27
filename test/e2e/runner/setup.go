@@ -21,14 +21,14 @@ import (
 
 	_ "embed"
 
-	"github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/privval"
-	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
-	"github.com/cometbft/cometbft/test/e2e/pkg/infra"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/privval"
+	e2e "github.com/biya-coin/cometbft/test/e2e/pkg"
+	"github.com/biya-coin/cometbft/test/e2e/pkg/infra"
+	"github.com/biya-coin/cometbft/types"
 )
 
 const (

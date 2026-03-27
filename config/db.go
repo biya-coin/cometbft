@@ -4,8 +4,8 @@ import (
 	"context"
 
 	dbm "github.com/cometbft/cometbft-db"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/libs/service"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/libs/service"
 )
 
 // ServiceProvider takes a config and a logger and returns a ready to go Node.

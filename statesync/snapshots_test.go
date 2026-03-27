@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cometbft/cometbft/p2p"
-	p2pmocks "github.com/cometbft/cometbft/p2p/mocks"
+	"github.com/biya-coin/cometbft/p2p"
+	p2pmocks "github.com/biya-coin/cometbft/p2p/mocks"
 )
 
 func TestSnapshot_Key(t *testing.T) {

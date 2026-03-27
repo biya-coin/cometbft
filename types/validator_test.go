@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cometbft/cometbft/crypto"
+	"github.com/biya-coin/cometbft/crypto"
 )
 
 func TestValidatorProtoBuf(t *testing.T) {

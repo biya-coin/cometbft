@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	cmtos "github.com/cometbft/cometbft/internal/os"
-	cmtjson "github.com/cometbft/cometbft/libs/json"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	cmtos "github.com/biya-coin/cometbft/internal/os"
+	cmtjson "github.com/biya-coin/cometbft/libs/json"
 )
 
 // ID is a hex-encoded crypto.Address.

@@ -9,11 +9,11 @@ import (
 
 	"github.com/cosmos/gogoproto/proto"
 
-	cmtstate "github.com/cometbft/cometbft/api/cometbft/state/v1"
-	cmtversion "github.com/cometbft/cometbft/api/cometbft/version/v1"
-	"github.com/cometbft/cometbft/types"
-	cmttime "github.com/cometbft/cometbft/types/time"
-	"github.com/cometbft/cometbft/version"
+	cmtstate "github.com/biya-coin/cometbft/api/cometbft/state/v1"
+	cmtversion "github.com/biya-coin/cometbft/api/cometbft/version/v1"
+	"github.com/biya-coin/cometbft/types"
+	cmttime "github.com/biya-coin/cometbft/types/time"
+	"github.com/biya-coin/cometbft/version"
 )
 
 // database keys.

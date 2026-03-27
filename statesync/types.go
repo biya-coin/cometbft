@@ -1,8 +1,8 @@
 package statesync
 
 import (
-	ssproto "github.com/cometbft/cometbft/api/cometbft/statesync/v1"
-	"github.com/cometbft/cometbft/types"
+	ssproto "github.com/biya-coin/cometbft/api/cometbft/statesync/v1"
+	"github.com/biya-coin/cometbft/types"
 )
 
 var (

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	ctypes "github.com/cometbft/cometbft/rpc/core/types"
-	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
-	"github.com/cometbft/cometbft/types"
+	ctypes "github.com/biya-coin/cometbft/rpc/core/types"
+	rpctypes "github.com/biya-coin/cometbft/rpc/jsonrpc/types"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // BroadcastEvidence broadcasts evidence of the misbehavior.

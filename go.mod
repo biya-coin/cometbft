@@ -1,16 +1,17 @@
-module github.com/cometbft/cometbft
+module github.com/biya-coin/cometbft
 
-go 1.23
-toolchain go1.23.7
+go 1.23.0
+
+toolchain go1.24.13
 
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/adlio/schema v1.3.6
+	github.com/biya-coin/cometbft/api v1.0.0-loki
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cometbft/cometbft-db v1.0.4
 	github.com/cometbft/cometbft-load-test v0.3.0
-	github.com/cometbft/cometbft/api v1.0.0
 	github.com/cosmos/gogoproto v1.7.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/dgraph-io/badger/v4 v4.6.0

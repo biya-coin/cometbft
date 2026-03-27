@@ -3,8 +3,8 @@ package mock
 import (
 	"context"
 
-	"github.com/cometbft/cometbft/light/provider"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/light/provider"
+	"github.com/biya-coin/cometbft/types"
 )
 
 type deadMock struct {

@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cometbft/cometbft/abci/example/kvstore"
-	"github.com/cometbft/cometbft/proxy"
+	"github.com/biya-coin/cometbft/abci/example/kvstore"
+	"github.com/biya-coin/cometbft/proxy"
 )
 
 func BenchmarkReap(b *testing.B) {

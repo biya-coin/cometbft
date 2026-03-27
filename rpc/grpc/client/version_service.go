@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/gogoproto/grpc"
 
-	pbsvc "github.com/cometbft/cometbft/api/cometbft/services/version/v1"
+	pbsvc "github.com/biya-coin/cometbft/api/cometbft/services/version/v1"
 )
 
 // Version provides version information about a particular CometBFT node.

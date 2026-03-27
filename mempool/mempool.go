@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	abcicli "github.com/cometbft/cometbft/abci/client"
-	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/types"
+	abcicli "github.com/biya-coin/cometbft/abci/client"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/types"
 )
 
 const (

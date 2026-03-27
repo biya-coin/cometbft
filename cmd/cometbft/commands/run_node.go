@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	kt "github.com/cometbft/cometbft/internal/keytypes"
-	cmtos "github.com/cometbft/cometbft/internal/os"
-	nm "github.com/cometbft/cometbft/node"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	kt "github.com/biya-coin/cometbft/internal/keytypes"
+	cmtos "github.com/biya-coin/cometbft/internal/os"
+	nm "github.com/biya-coin/cometbft/node"
 )
 
 var (

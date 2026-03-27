@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/types"
+	"github.com/biya-coin/cometbft/p2p"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // mempoolTx is an entry in the mempool.

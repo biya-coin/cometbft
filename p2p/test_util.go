@@ -5,13 +5,13 @@ import (
 	"net"
 	"time"
 
-	"github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/crypto/ed25519"
-	cmtnet "github.com/cometbft/cometbft/internal/net"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/p2p/conn"
+	"github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/crypto"
+	"github.com/biya-coin/cometbft/crypto/ed25519"
+	cmtnet "github.com/biya-coin/cometbft/internal/net"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/p2p/conn"
 )
 
 const testCh = 0x01

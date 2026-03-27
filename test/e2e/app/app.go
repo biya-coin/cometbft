@@ -20,17 +20,17 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 	gogo "github.com/cosmos/gogoproto/types"
 
-	"github.com/cometbft/cometbft/abci/example/kvstore"
-	abci "github.com/cometbft/cometbft/abci/types"
-	cryptoproto "github.com/cometbft/cometbft/api/cometbft/crypto/v1"
-	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
-	"github.com/cometbft/cometbft/crypto"
-	cryptoenc "github.com/cometbft/cometbft/crypto/encoding"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/libs/protoio"
-	"github.com/cometbft/cometbft/test/loadtime/payload"
-	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/cometbft/cometbft/version"
+	"github.com/biya-coin/cometbft/abci/example/kvstore"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	cryptoproto "github.com/biya-coin/cometbft/api/cometbft/crypto/v1"
+	cmtproto "github.com/biya-coin/cometbft/api/cometbft/types/v1"
+	"github.com/biya-coin/cometbft/crypto"
+	cryptoenc "github.com/biya-coin/cometbft/crypto/encoding"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/libs/protoio"
+	"github.com/biya-coin/cometbft/test/loadtime/payload"
+	cmttypes "github.com/biya-coin/cometbft/types"
+	"github.com/biya-coin/cometbft/version"
 )
 
 const (

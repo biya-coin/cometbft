@@ -6,12 +6,12 @@ import (
 	"context"
 	"testing"
 
-	abciclient "github.com/cometbft/cometbft/abci/client"
-	"github.com/cometbft/cometbft/abci/example/kvstore"
-	"github.com/cometbft/cometbft/config"
-	cmtsync "github.com/cometbft/cometbft/libs/sync"
-	mempl "github.com/cometbft/cometbft/mempool"
-	"github.com/cometbft/cometbft/proxy"
+	abciclient "github.com/biya-coin/cometbft/abci/client"
+	"github.com/biya-coin/cometbft/abci/example/kvstore"
+	"github.com/biya-coin/cometbft/config"
+	cmtsync "github.com/biya-coin/cometbft/libs/sync"
+	mempl "github.com/biya-coin/cometbft/mempool"
+	"github.com/biya-coin/cometbft/proxy"
 )
 
 func FuzzMempool(f *testing.F) {

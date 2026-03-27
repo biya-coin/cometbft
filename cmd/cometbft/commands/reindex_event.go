@@ -8,16 +8,16 @@ import (
 	"github.com/spf13/cobra"
 
 	dbm "github.com/cometbft/cometbft-db"
-	abcitypes "github.com/cometbft/cometbft/abci/types"
-	cmtcfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/internal/progressbar"
-	"github.com/cometbft/cometbft/state"
-	"github.com/cometbft/cometbft/state/indexer"
-	blockidxkv "github.com/cometbft/cometbft/state/indexer/block/kv"
-	"github.com/cometbft/cometbft/state/indexer/sink/psql"
-	"github.com/cometbft/cometbft/state/txindex"
-	"github.com/cometbft/cometbft/state/txindex/kv"
-	"github.com/cometbft/cometbft/types"
+	abcitypes "github.com/biya-coin/cometbft/abci/types"
+	cmtcfg "github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/internal/progressbar"
+	"github.com/biya-coin/cometbft/state"
+	"github.com/biya-coin/cometbft/state/indexer"
+	blockidxkv "github.com/biya-coin/cometbft/state/indexer/block/kv"
+	"github.com/biya-coin/cometbft/state/indexer/sink/psql"
+	"github.com/biya-coin/cometbft/state/txindex"
+	"github.com/biya-coin/cometbft/state/txindex/kv"
+	"github.com/biya-coin/cometbft/types"
 )
 
 const (

@@ -1,7 +1,7 @@
 package test
 
 import (
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
+	cmtrand "github.com/biya-coin/cometbft/internal/rand"
 )
 
 // Contract: !bytes.Equal(input, output) && len(input) >= len(output).

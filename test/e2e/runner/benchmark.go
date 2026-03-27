@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	e2e "github.com/cometbft/cometbft/test/e2e/pkg"
-	"github.com/cometbft/cometbft/types"
+	e2e "github.com/biya-coin/cometbft/test/e2e/pkg"
+	"github.com/biya-coin/cometbft/types"
 )
 
 // Benchmark is a simple function for fetching, calculating and printing

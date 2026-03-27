@@ -14,14 +14,14 @@ import (
 
 	"github.com/cosmos/gogoproto/proto"
 
-	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
-	"github.com/cometbft/cometbft/config"
-	flow "github.com/cometbft/cometbft/internal/flowrate"
-	"github.com/cometbft/cometbft/internal/timer"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/libs/protoio"
-	"github.com/cometbft/cometbft/libs/service"
-	cmtsync "github.com/cometbft/cometbft/libs/sync"
+	tmp2p "github.com/biya-coin/cometbft/api/cometbft/p2p/v1"
+	"github.com/biya-coin/cometbft/config"
+	flow "github.com/biya-coin/cometbft/internal/flowrate"
+	"github.com/biya-coin/cometbft/internal/timer"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/libs/protoio"
+	"github.com/biya-coin/cometbft/libs/service"
+	cmtsync "github.com/biya-coin/cometbft/libs/sync"
 )
 
 const (

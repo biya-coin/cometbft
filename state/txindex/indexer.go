@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/libs/pubsub/query"
+	abci "github.com/biya-coin/cometbft/abci/types"
+	"github.com/biya-coin/cometbft/libs/log"
+	"github.com/biya-coin/cometbft/libs/pubsub/query"
 )
 
 // XXX/TODO: These types should be moved to the indexer package.

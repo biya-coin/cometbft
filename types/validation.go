@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cometbft/cometbft/crypto/batch"
-	"github.com/cometbft/cometbft/crypto/tmhash"
-	cmtmath "github.com/cometbft/cometbft/libs/math"
-	cmterrors "github.com/cometbft/cometbft/types/errors"
+	"github.com/biya-coin/cometbft/crypto/batch"
+	"github.com/biya-coin/cometbft/crypto/tmhash"
+	cmtmath "github.com/biya-coin/cometbft/libs/math"
+	cmterrors "github.com/biya-coin/cometbft/types/errors"
 )
 
 const batchVerifyThreshold = 2

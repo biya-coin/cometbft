@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/cobra"
 
 	dbm "github.com/cometbft/cometbft-db"
-	cfg "github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/internal/os"
-	"github.com/cometbft/cometbft/state"
-	"github.com/cometbft/cometbft/store"
+	cfg "github.com/biya-coin/cometbft/config"
+	"github.com/biya-coin/cometbft/internal/os"
+	"github.com/biya-coin/cometbft/state"
+	"github.com/biya-coin/cometbft/store"
 )
 
 var removeBlock = false
