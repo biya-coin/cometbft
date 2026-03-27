@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	cstypes "github.com/cometbft/cometbft/internal/consensus/types"
@@ -75,6 +76,10 @@ type Metrics struct {
 	// Histogram of durations for each step in the consensus protocol.
 	StepDurationSeconds metrics.Histogram `metrics_bucketsizes:"0.1, 100, 8" metrics_buckettype:"exprange" metrics_labels:"step"`
 	stepStart           time.Time
+
+	// 当前区块各 step 累积耗时（μs），每块 commit 后重置
+	stepAccumsMu sync.Mutex
+	stepAccumsUs map[string]int64
 
 	// Number of block parts received by the node, separated by whether the part
 	// was relevant to the block the node is trying to gather or not.
@@ -185,6 +190,22 @@ func (m *Metrics) MarkStep(s cstypes.RoundStepType) {
 		stepTime := cmttime.Since(m.stepStart).Seconds()
 		stepName := strings.TrimPrefix(s.String(), "RoundStep")
 		m.StepDurationSeconds.With("step", stepName).Observe(stepTime)
+		// 同时累积到当前区块的 step map（μs）
+		m.stepAccumsMu.Lock()
+		if m.stepAccumsUs == nil {
+			m.stepAccumsUs = make(map[string]int64)
+		}
+		m.stepAccumsUs[stepName] += int64(stepTime * 1e6)
+		m.stepAccumsMu.Unlock()
 	}
 	m.stepStart = cmttime.Now()
+}
+
+// ResetStepAccums 重置并返回当前区块的 step 累积耗时（μs），供 recordMetrics 调用。
+func (m *Metrics) ResetStepAccums() map[string]int64 {
+	m.stepAccumsMu.Lock()
+	accums := m.stepAccumsUs
+	m.stepAccumsUs = make(map[string]int64)
+	m.stepAccumsMu.Unlock()
+	return accums
 }

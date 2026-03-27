@@ -12,6 +12,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/internal/clist"
+	loki "github.com/cometbft/cometbft/internal/consensus/loki"
 	"github.com/cometbft/cometbft/libs/log"
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
@@ -522,6 +523,9 @@ func (mem *CListMempool) addTx(tx types.Tx, gasWanted int64, sender p2p.ID, lane
 		"height", mem.height.Load(),
 		"total", mem.numTxs,
 	)
+
+	// TX lifecycle tracing: record the moment this tx was accepted into the mempool.
+	loki.OnTxAddedToMempool(tx.Hash())
 }
 
 // RemoveTxByKey removes a transaction from the mempool by its TxKey index.

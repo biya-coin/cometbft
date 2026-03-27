@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
+	"github.com/cometbft/cometbft/internal/consensus/loki"
 	"github.com/cometbft/cometbft/internal/fail"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
@@ -239,6 +241,7 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 	})
 	endTime := cmttime.Now().UnixNano()
 	blockExec.metrics.BlockProcessingTime.Observe(float64(endTime-startTime) / 1000000)
+	finalizeBlockUs := (endTime - startTime) / 1000
 	if err != nil {
 		blockExec.logger.Error("Error in proxyAppConn.FinalizeBlock", "err", err)
 		return state, err
@@ -260,10 +263,12 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 
 	fail.Fail() // XXX
 
+	_t1 := time.Now()
 	// Save the results before we commit.
 	if err := blockExec.store.SaveFinalizeBlockResponse(block.Height, abciResponse); err != nil {
 		return state, err
 	}
+	_d1 := time.Since(_t1).Microseconds()
 
 	fail.Fail() // XXX
 
@@ -285,28 +290,36 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 		blockExec.metrics.ConsensusParamUpdates.Add(1)
 	}
 
+	_t2 := time.Now()
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponse, validatorUpdates)
 	if err != nil {
 		return state, fmt.Errorf("commit failed for application: %w", err)
 	}
+	_d2 := time.Since(_t2).Microseconds()
 
+	_t3 := time.Now()
 	// Lock mempool, commit app state, update mempoool.
 	retainHeight, err := blockExec.Commit(state, block, abciResponse)
 	if err != nil {
 		return state, fmt.Errorf("commit failed for application: %w", err)
 	}
+	_d3 := time.Since(_t3).Microseconds()
 
+	_t4 := time.Now()
 	// Update evpool with the latest state.
 	blockExec.evpool.Update(state, block.Evidence.Evidence)
+	_d4 := time.Since(_t4).Microseconds()
 
 	fail.Fail() // XXX
 
+	_t5 := time.Now()
 	// Update the app hash and save the state.
 	state.AppHash = abciResponse.AppHash
 	if err := blockExec.store.Save(state); err != nil {
 		return state, err
 	}
+	_d5 := time.Since(_t5).Microseconds()
 
 	fail.Fail() // XXX
 
@@ -318,10 +331,13 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 		}
 	}
 
+	_t6 := time.Now()
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events won't be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, blockID, abciResponse, validatorUpdates)
+	_d6 := time.Since(_t6).Microseconds()
 
+	loki.LogCommitTiming(block.Height, finalizeBlockUs, _d1, _d2, _d3, _d4, _d5, _d6)
 	return state, nil
 }
 

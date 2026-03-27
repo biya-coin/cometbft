@@ -17,6 +17,7 @@ import (
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
 	cfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/crypto"
+	loki "github.com/cometbft/cometbft/internal/consensus/loki"
 	cstypes "github.com/cometbft/cometbft/internal/consensus/types"
 	cmtevents "github.com/cometbft/cometbft/internal/events"
 	"github.com/cometbft/cometbft/internal/fail"
@@ -1942,6 +1943,8 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
+	lokiAccums := cs.metrics.ResetStepAccums()
+	loki.LogConsensusTiming(height, lokiAccums, block.Txs, cs.Validators.Size())
 	cs.scheduleRound0(&cs.RoundState)
 
 	// By here,
