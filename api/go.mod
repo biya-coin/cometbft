@@ -1,4 +1,4 @@
-module github.com/cometbft/cometbft/api
+module github.com/biya-coin/cometbft/api
 
 go 1.23
 

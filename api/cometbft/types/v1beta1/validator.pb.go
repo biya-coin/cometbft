@@ -5,7 +5,7 @@ package v1beta1
 
 import (
 	fmt "fmt"
-	v1 "github.com/cometbft/cometbft/api/cometbft/crypto/v1"
+	v1 "github.com/biya-coin/cometbft/api/cometbft/crypto/v1"
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
