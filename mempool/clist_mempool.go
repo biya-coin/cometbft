@@ -15,6 +15,7 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
+	"github.com/cometbft/cometbft/monitor"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/types"
@@ -335,6 +336,9 @@ func (mem *CListMempool) Contains(txKey types.TxKey) bool {
 // It blocks if we're waiting on Update() or Reap().
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, sender p2p.ID) (*abcicli.ReqRes, error) {
+	// Loki: log exact moment transaction is received (before ABCI CheckTx validation time)
+	monitor.AddTx(tx.Hash(), time.Now())
+
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
 	defer mem.updateMtx.RUnlock()

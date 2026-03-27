@@ -26,6 +26,7 @@ import (
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	"github.com/cometbft/cometbft/libs/service"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
+	"github.com/cometbft/cometbft/monitor"
 	"github.com/cometbft/cometbft/p2p"
 	sm "github.com/cometbft/cometbft/state"
 	"github.com/cometbft/cometbft/types"
@@ -141,6 +142,9 @@ type State struct {
 	// a buffer to store the concatenated proposal block parts (serialization format)
 	// should only be accessed under the cs.mtx lock
 	serializedBlockBuffer []byte
+
+	// Loki structured monitor for consensus-phase and block timing.
+	lokiMonitor *monitor.ConsensusMonitor
 }
 
 // StateOption sets an optional parameter on the State.
@@ -172,9 +176,13 @@ func NewState(
 		evsw:             cmtevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 	}
+	cs.lokiMonitor = monitor.NewConsensusMonitor()
 	for _, option := range options {
 		option(cs)
 	}
+	// Wire the Loki monitor into Metrics so MarkStep() forwards durations
+	// without any extra timing code in state.go.
+	cs.metrics.SetMonitor(cs.lokiMonitor)
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
@@ -1939,6 +1947,9 @@ func (cs *State) finalizeCommit(height int64) {
 	if err := cs.updatePrivValidatorPubKey(); err != nil {
 		logger.Error("Failed to get private validator pubkey", "err", err)
 	}
+
+	// --- Loki: flush block and print transaction wait times ---
+	cs.lokiMonitor.FlushBlock(height, block.Txs)
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.

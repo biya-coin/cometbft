@@ -6,6 +6,7 @@ import (
 
 	cstypes "github.com/cometbft/cometbft/internal/consensus/types"
 	"github.com/cometbft/cometbft/libs/metrics"
+	"github.com/cometbft/cometbft/monitor"
 	"github.com/cometbft/cometbft/types"
 	cmttime "github.com/cometbft/cometbft/types/time"
 )
@@ -139,6 +140,10 @@ type Metrics struct {
 	// parameter SynchronyParams.MessageDelay, used by the PBTS algorithm.
 	// metrics:Difference in seconds between the local time when a proposal message is received and the timestamp in the proposal message.
 	ProposalTimestampDifference metrics.Histogram `metrics_bucketsizes:"-1.5, -1.0, -0.5, -0.2, 0, 0.2, 0.5, 1.0, 1.5, 2.0, 2.5, 4.0, 8.0" metrics_labels:"is_timely"`
+
+	// lokiMon receives per-step durations from MarkStep for batch Loki logging.
+	// Set via SetMonitor. May be nil when monitoring is not configured.
+	lokiMon *monitor.ConsensusMonitor
 }
 
 func (m *Metrics) MarkProposalProcessed(accepted bool) {
@@ -185,6 +190,16 @@ func (m *Metrics) MarkStep(s cstypes.RoundStepType) {
 		stepTime := cmttime.Since(m.stepStart).Seconds()
 		stepName := strings.TrimPrefix(s.String(), "RoundStep")
 		m.StepDurationSeconds.With("step", stepName).Observe(stepTime)
+		// Feed the already-computed duration into the Loki monitor (no extra timer).
+		if m.lokiMon != nil {
+			m.lokiMon.RecordStep(stepName, stepTime)
+		}
 	}
 	m.stepStart = cmttime.Now()
+}
+
+// SetMonitor attaches a ConsensusMonitor so that MarkStep() forwards
+// per-step durations to the Loki monitor. Call once during node setup.
+func (m *Metrics) SetMonitor(mon *monitor.ConsensusMonitor) {
+	m.lokiMon = mon
 }
