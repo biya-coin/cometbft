@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
 	"github.com/cometbft/cometbft/internal/fail"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
+	"github.com/cometbft/cometbft/monitor"
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/types"
 	cmttime "github.com/cometbft/cometbft/types/time"
@@ -226,6 +228,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, block *types.Block, syncingToHeight int64) (State, error) {
 	startTime := cmttime.Now().UnixNano()
+	abT0 := time.Now()
 	abciResponse, err := blockExec.proxyApp.FinalizeBlock(context.TODO(), &abci.FinalizeBlockRequest{
 		Hash:               block.Hash(),
 		NextValidatorsHash: block.NextValidatorsHash,
@@ -239,6 +242,7 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 	})
 	endTime := cmttime.Now().UnixNano()
 	blockExec.metrics.BlockProcessingTime.Observe(float64(endTime-startTime) / 1000000)
+	abT1 := time.Now() // ab1: FinalizeBlock done
 	if err != nil {
 		blockExec.logger.Error("Error in proxyAppConn.FinalizeBlock", "err", err)
 		return state, err
@@ -264,6 +268,7 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 	if err := blockExec.store.SaveFinalizeBlockResponse(block.Height, abciResponse); err != nil {
 		return state, err
 	}
+	abT2 := time.Now() // ab2: SaveFinalizeBlockResponse done
 
 	fail.Fail() // XXX
 
@@ -290,15 +295,18 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 	if err != nil {
 		return state, fmt.Errorf("commit failed for application: %w", err)
 	}
+	abT3 := time.Now() // ab3: updateState done
 
 	// Lock mempool, commit app state, update mempoool.
 	retainHeight, err := blockExec.Commit(state, block, abciResponse)
 	if err != nil {
 		return state, fmt.Errorf("commit failed for application: %w", err)
 	}
+	abT4 := time.Now() // ab4: Commit done
 
 	// Update evpool with the latest state.
 	blockExec.evpool.Update(state, block.Evidence.Evidence)
+	abT5 := time.Now() // ab5: evpool.Update done
 
 	fail.Fail() // XXX
 
@@ -307,6 +315,7 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 	if err := blockExec.store.Save(state); err != nil {
 		return state, err
 	}
+	abT6 := time.Now() // ab6: store.Save done
 
 	fail.Fail() // XXX
 
@@ -321,6 +330,10 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events won't be fired during replay
 	fireEvents(blockExec.logger, blockExec.eventBus, block, blockID, abciResponse, validatorUpdates)
+	abT7 := time.Now() // ab7: fireEvents done
+
+	// --- Loki: emit applyBlock sub-step timing ---
+	monitor.LogApplyBlockSubstep(block.Height, abT0, abT1, abT2, abT3, abT4, abT5, abT6, abT7)
 
 	return state, nil
 }

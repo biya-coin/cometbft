@@ -1225,6 +1225,9 @@ func (cs *State) isProposer(address []byte) bool {
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int32) {
+	t0 := time.Now()
+	var createBlockMs float64
+
 	var block *types.Block
 	var blockParts *types.PartSet
 
@@ -1236,6 +1239,7 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 		// Create a new proposal block from state/txs from the mempool.
 		var err error
 		block, err = cs.createProposalBlock(context.TODO())
+		createBlockMs = float64(time.Since(t0).Nanoseconds()) / 1e6
 		if err != nil {
 			cs.Logger.Error("Unable to create proposal block", "error", err)
 			return
@@ -1275,6 +1279,10 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	} else if !cs.replayMode {
 		cs.Logger.Error("Propose step; failed signing proposal", "height", height, "round", round, "err", err)
 	}
+
+	// --- Loki: emit proposal packaging timing (leader only) ---
+	fmt.Printf("msg=propose_timing height=%d round=%d create_block_ms=%.3f pack_total_ms=%.3f\n",
+		height, round, createBlockMs, float64(time.Since(t0).Nanoseconds())/1e6)
 }
 
 // Returns true if the proposal block is complete &&
@@ -1845,6 +1853,9 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
+	// --- Loki: start timing finalizeCommit sub-steps ---
+	fcT0 := time.Now()
+
 	cs.calculatePrevoteMessageDelayMetrics()
 
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
@@ -1888,6 +1899,7 @@ func (cs *State) finalizeCommit(height int64) {
 		// Happens during replay if we already saved the block but didn't commit
 		logger.Debug("Calling finalizeCommit on already stored block", "height", block.Height)
 	}
+	fcT1 := time.Now() // d1: SaveBlock done
 
 	fail.Fail() // XXX
 
@@ -1911,6 +1923,7 @@ func (cs *State) finalizeCommit(height int64) {
 			endMsg, err,
 		))
 	}
+	fcT2 := time.Now() // d2: WAL WriteSync done
 
 	fail.Fail() // XXX
 
@@ -1932,14 +1945,21 @@ func (cs *State) finalizeCommit(height int64) {
 	if err != nil {
 		panic(fmt.Sprintf("failed to apply block; error %v", err))
 	}
+	fcT3 := time.Now() // d3: ApplyVerifiedBlock done
 
 	fail.Fail() // XXX
 
 	// must be called before we update state
 	cs.recordMetrics(height, block)
 
+	// --- Loki: emit commit sub-step timing ---
+	monitor.LogCommitSubstep(height, fcT0, fcT1, fcT2, fcT3)
+
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
+
+	// --- Loki: flush block and print transaction wait times ---
+	cs.lokiMonitor.FlushBlock(height, block.Txs)
 
 	fail.Fail() // XXX
 
@@ -1947,9 +1967,6 @@ func (cs *State) finalizeCommit(height int64) {
 	if err := cs.updatePrivValidatorPubKey(); err != nil {
 		logger.Error("Failed to get private validator pubkey", "err", err)
 	}
-
-	// --- Loki: flush block and print transaction wait times ---
-	cs.lokiMonitor.FlushBlock(height, block.Txs)
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
