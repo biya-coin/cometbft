@@ -97,9 +97,8 @@ func (m *ConsensusMonitor) FlushBlock(height int64, txs types.Txs) {
 
 // LogApplyBlockSubstep emits the 7 sub-step latencies for ApplyVerifiedBlock.
 func LogApplyBlockSubstep(height int64, t0, t1, t2, t3, t4, t5, t6, t7 time.Time) {
-	fmt.Printf("msg=apply_block_substep height=%d ab_total_ms=%.3f ab1_finalize_ms=%.3f ab2_save_resp_ms=%.3f ab3_update_state_ms=%.3f ab4_commit_ms=%.3f ab5_evpool_ms=%.3f ab6_store_save_ms=%.3f ab7_fire_events_ms=%.3f\n",
+	fmt.Printf("msg=apply_block_substep height=%d ab1_finalize_ms=%.3f ab2_save_resp_ms=%.3f ab3_update_state_ms=%.3f ab4_commit_ms=%.3f ab5_evpool_ms=%.3f ab6_store_save_ms=%.3f ab7_fire_events_ms=%.3f\n",
 		height,
-		float64(t7.Sub(t0).Nanoseconds())/1e6,
 		float64(t1.Sub(t0).Nanoseconds())/1e6,
 		float64(t2.Sub(t1).Nanoseconds())/1e6,
 		float64(t3.Sub(t2).Nanoseconds())/1e6,
@@ -112,9 +111,23 @@ func LogApplyBlockSubstep(height int64, t0, t1, t2, t3, t4, t5, t6, t7 time.Time
 
 // LogCommitSubstep emits the 3 sub-step latencies for finalizeCommit.
 func LogCommitSubstep(height int64, t0, t1, t2, t3 time.Time) {
-	fmt.Printf("msg=commit_substep height=%d finalize_total_ms=%.3f d1_save_block_ms=%.3f d2_wal_sync_ms=%.3f d3_apply_block_ms=%.3f\n",
+	fmt.Printf("msg=commit_substep height=%d d1_save_block_ms=%.3f d2_wal_sync_ms=%.3f d3_apply_block_ms=%.3f\n",
 		height,
-		float64(t3.Sub(t0).Nanoseconds())/1e6,
+		float64(t1.Sub(t0).Nanoseconds())/1e6,
+		float64(t2.Sub(t1).Nanoseconds())/1e6,
+		float64(t3.Sub(t2).Nanoseconds())/1e6,
+	)
+}
+
+// LogBlockExecCommitSubstep emits the 3 synchronous sub-step latencies inside
+// BlockExecutor.Commit():
+//
+//	c1_lock_ms        – PreUpdate + mempool.Lock()
+//	c2_flush_ms       – mempool.FlushAppConn()
+//	c3_abci_commit_ms – proxyApp.Commit() ABCI call
+func LogBlockExecCommitSubstep(height int64, t0, t1, t2, t3 time.Time) {
+	fmt.Printf("msg=block_exec_commit_substep height=%d c1_lock_ms=%.3f c2_flush_ms=%.3f c3_abci_commit_ms=%.3f\n",
+		height,
 		float64(t1.Sub(t0).Nanoseconds())/1e6,
 		float64(t2.Sub(t1).Nanoseconds())/1e6,
 		float64(t3.Sub(t2).Nanoseconds())/1e6,

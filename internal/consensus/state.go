@@ -1226,7 +1226,6 @@ func (cs *State) isProposer(address []byte) bool {
 
 func (cs *State) defaultDecideProposal(height int64, round int32) {
 	t0 := time.Now()
-	var createBlockMs float64
 
 	var block *types.Block
 	var blockParts *types.PartSet
@@ -1239,7 +1238,6 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 		// Create a new proposal block from state/txs from the mempool.
 		var err error
 		block, err = cs.createProposalBlock(context.TODO())
-		createBlockMs = float64(time.Since(t0).Nanoseconds()) / 1e6
 		if err != nil {
 			cs.Logger.Error("Unable to create proposal block", "error", err)
 			return
@@ -1281,8 +1279,8 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	}
 
 	// --- Loki: emit proposal packaging timing (leader only) ---
-	fmt.Printf("msg=propose_timing height=%d round=%d create_block_ms=%.3f pack_total_ms=%.3f\n",
-		height, round, createBlockMs, float64(time.Since(t0).Nanoseconds())/1e6)
+	fmt.Printf("msg=propose_timing height=%d round=%d pack_total_ms=%.3f\n",
+		height, round, float64(time.Since(t0).Nanoseconds())/1e6)
 }
 
 // Returns true if the proposal block is complete &&

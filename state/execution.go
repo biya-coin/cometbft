@@ -134,6 +134,9 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxReapBytes, maxGas)
 	commit := lastExtCommit.ToCommit()
 	block := state.MakeBlock(height, txs, commit, evidence, proposerAddr)
+
+	// --- Loki: PrepareProposal timing ---
+	tPrepare := time.Now()
 	rpp, err := blockExec.proxyApp.PrepareProposal(
 		ctx,
 		&abci.PrepareProposalRequest{
@@ -147,6 +150,11 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 			ProposerAddress:    block.ProposerAddress,
 		},
 	)
+	prepareMs := float64(time.Now().Sub(tPrepare).Nanoseconds()) / 1e6
+	// --- Loki: emit sub-step timing (leader only) ---
+	fmt.Printf("msg=propose_timing height=%d prepare_proposal_ms=%.3f\n",
+		height, prepareMs)
+
 	if err != nil {
 		// The App MUST ensure that only valid (and hence 'processable') transactions
 		// enter the mempool. Hence, at this point, we can't have any non-processable
@@ -406,13 +414,18 @@ func (blockExec *BlockExecutor) Commit(
 	block *types.Block,
 	abciResponse *abci.FinalizeBlockResponse,
 ) (int64, error) {
+	// --- [8-4-1] PreUpdate + Lock mempool ---
+	cT0 := time.Now()
 	blockExec.mempool.PreUpdate()
 	blockExec.mempool.Lock()
 	unlockMempool := func() { blockExec.mempool.Unlock() }
+	cT1 := time.Now()
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
+	// --- [8-4-2] FlushAppConn ---
 	err := blockExec.mempool.FlushAppConn()
+	cT2 := time.Now()
 	if err != nil {
 		unlockMempool()
 		blockExec.logger.Error("client error during mempool.FlushAppConn, flushing mempool", "err", err)
@@ -420,7 +433,9 @@ func (blockExec *BlockExecutor) Commit(
 	}
 
 	// Commit block, get hash back
+	// --- [8-4-3] proxyApp.Commit (ABCI Commit) ---
 	res, err := blockExec.proxyApp.Commit(context.TODO())
+	cT3 := time.Now()
 	if err != nil {
 		unlockMempool()
 		blockExec.logger.Error("client error during proxyAppConn.CommitSync", "err", err)
@@ -433,6 +448,9 @@ func (blockExec *BlockExecutor) Commit(
 		"height", block.Height,
 		"block_app_hash", fmt.Sprintf("%X", block.AppHash),
 	)
+
+	// --- Loki: emit Commit sub-step timing ---
+	monitor.LogBlockExecCommitSubstep(block.Height, cT0, cT1, cT2, cT3)
 
 	// Update mempool.
 	go blockExec.asyncUpdateMempool(unlockMempool, block, state.Copy(), abciResponse)
