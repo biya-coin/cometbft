@@ -109,13 +109,11 @@ func LogApplyBlockSubstep(height int64, t0, t1, t2, t3, t4, t5, t6, t7 time.Time
 	)
 }
 
-// LogCommitSubstep emits the 3 sub-step latencies for finalizeCommit.
-func LogCommitSubstep(height int64, t0, t1, t2, t3 time.Time) {
-	fmt.Printf("msg=commit_substep height=%d d1_save_block_ms=%.3f d2_wal_sync_ms=%.3f d3_apply_block_ms=%.3f\n",
+// LogCommitSubstep emits the ApplyVerifiedBlock latency for the commit phase.
+func LogCommitSubstep(height int64, t0, t3 time.Time) {
+	fmt.Printf("msg=commit_substep height=%d d3_apply_block_ms=%.3f\n",
 		height,
-		float64(t1.Sub(t0).Nanoseconds())/1e6,
-		float64(t2.Sub(t1).Nanoseconds())/1e6,
-		float64(t3.Sub(t2).Nanoseconds())/1e6,
+		float64(t3.Sub(t0).Nanoseconds())/1e6,
 	)
 }
 
