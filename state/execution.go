@@ -417,15 +417,14 @@ func (blockExec *BlockExecutor) Commit(
 	// --- [8-4-1] PreUpdate + Lock mempool ---
 	cT0 := time.Now()
 	blockExec.mempool.PreUpdate()
+	cT1 := time.Now()
 	blockExec.mempool.Lock()
 	unlockMempool := func() { blockExec.mempool.Unlock() }
-	cT1 := time.Now()
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
 	// --- [8-4-2] FlushAppConn ---
 	err := blockExec.mempool.FlushAppConn()
-	cT2 := time.Now()
 	if err != nil {
 		unlockMempool()
 		blockExec.logger.Error("client error during mempool.FlushAppConn, flushing mempool", "err", err)
@@ -434,6 +433,7 @@ func (blockExec *BlockExecutor) Commit(
 
 	// Commit block, get hash back
 	// --- [8-4-3] proxyApp.Commit (ABCI Commit) ---
+	cT2 := time.Now()
 	res, err := blockExec.proxyApp.Commit(context.TODO())
 	cT3 := time.Now()
 	if err != nil {
@@ -450,7 +450,7 @@ func (blockExec *BlockExecutor) Commit(
 	)
 
 	// --- Loki: emit Commit sub-step timing ---
-	monitor.LogBlockExecCommitSubstep(block.Height, cT0, cT1, cT2, cT3)
+	monitor.LogBlockExecCommitSubstep(block.Height, cT1.Sub(cT0), cT3.Sub(cT2))
 
 	// Update mempool.
 	go blockExec.asyncUpdateMempool(unlockMempool, block, state.Copy(), abciResponse)

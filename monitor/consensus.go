@@ -117,17 +117,11 @@ func LogCommitSubstep(height int64, t0, t3 time.Time) {
 	)
 }
 
-// LogBlockExecCommitSubstep emits the 3 synchronous sub-step latencies inside
-// BlockExecutor.Commit():
-//
-//	c1_lock_ms        – PreUpdate + mempool.Lock()
-//	c2_flush_ms       – mempool.FlushAppConn()
-//	c3_abci_commit_ms – proxyApp.Commit() ABCI call
-func LogBlockExecCommitSubstep(height int64, t0, t1, t2, t3 time.Time) {
-	fmt.Printf("msg=block_exec_commit_substep height=%d c1_lock_ms=%.3f c2_flush_ms=%.3f c3_abci_commit_ms=%.3f\n",
+// LogBlockExecCommitSubstep emits the 2 synchronous sub-step latencies inside
+func LogBlockExecCommitSubstep(height int64, t0, t1 time.Duration) {
+	fmt.Printf("msg=block_exec_commit_substep height=%d mempool_preupdate_ms=%.3f abci_commit_ms=%.3f\n",
 		height,
-		float64(t1.Sub(t0).Nanoseconds())/1e6,
-		float64(t2.Sub(t1).Nanoseconds())/1e6,
-		float64(t3.Sub(t2).Nanoseconds())/1e6,
+		float64(t0.Nanoseconds())/1e6,
+		float64(t1.Nanoseconds())/1e6,
 	)
 }
