@@ -131,12 +131,14 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		maxReapBytes = -1
 	}
 
+	t1 := time.Now()
 	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxReapBytes, maxGas)
+	reapMs := float64(time.Since(t1).Nanoseconds()) / 1e6
+
 	commit := lastExtCommit.ToCommit()
 	block := state.MakeBlock(height, txs, commit, evidence, proposerAddr)
 
-	// --- Loki: PrepareProposal timing ---
-	tPrepare := time.Now()
+	t3 := time.Now()
 	rpp, err := blockExec.proxyApp.PrepareProposal(
 		ctx,
 		&abci.PrepareProposalRequest{
@@ -150,10 +152,7 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 			ProposerAddress:    block.ProposerAddress,
 		},
 	)
-	prepareMs := float64(time.Now().Sub(tPrepare).Nanoseconds()) / 1e6
-	// --- Loki: emit sub-step timing (leader only) ---
-	fmt.Printf("msg=propose_timing height=%d prepare_proposal_ms=%.3f\n",
-		height, prepareMs)
+	prepareMs := float64(time.Since(t3).Nanoseconds()) / 1e6
 
 	if err != nil {
 		// The App MUST ensure that only valid (and hence 'processable') transactions
@@ -172,7 +171,13 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		return nil, err
 	}
 
-	return state.MakeBlock(height, txl, commit, evidence, proposerAddr), nil
+	finalBlock := state.MakeBlock(height, txl, commit, evidence, proposerAddr)
+
+	// CreateProposalBlock 各子步骤汇总
+	fmt.Printf("msg=create_proposal_block_timing height=%d reap_ms=%.3f prepare_proposal_ms=%.3f\n",
+		height, reapMs, prepareMs)
+
+	return finalBlock, nil
 }
 
 func (blockExec *BlockExecutor) ProcessProposal(
@@ -414,17 +419,20 @@ func (blockExec *BlockExecutor) Commit(
 	block *types.Block,
 	abciResponse *abci.FinalizeBlockResponse,
 ) (int64, error) {
-	// --- [8-4-1] PreUpdate + Lock mempool ---
+	// --- [8-4-1] PreUpdate ---
 	cT0 := time.Now()
 	blockExec.mempool.PreUpdate()
 	cT1 := time.Now()
+	// --- [8-4-2] Lock mempool ---
 	blockExec.mempool.Lock()
+	cT2 := time.Now()
 	unlockMempool := func() { blockExec.mempool.Unlock() }
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
-	// --- [8-4-2] FlushAppConn ---
+	// --- [8-4-3] FlushAppConn ---
 	err := blockExec.mempool.FlushAppConn()
+	cT3 := time.Now()
 	if err != nil {
 		unlockMempool()
 		blockExec.logger.Error("client error during mempool.FlushAppConn, flushing mempool", "err", err)
@@ -432,10 +440,10 @@ func (blockExec *BlockExecutor) Commit(
 	}
 
 	// Commit block, get hash back
-	// --- [8-4-3] proxyApp.Commit (ABCI Commit) ---
-	cT2 := time.Now()
+	// --- [8-4-4] proxyApp.Commit (ABCI Commit) ---
+	cT4 := time.Now()
 	res, err := blockExec.proxyApp.Commit(context.TODO())
-	cT3 := time.Now()
+	cT5 := time.Now()
 	if err != nil {
 		unlockMempool()
 		blockExec.logger.Error("client error during proxyAppConn.CommitSync", "err", err)
@@ -450,7 +458,7 @@ func (blockExec *BlockExecutor) Commit(
 	)
 
 	// --- Loki: emit Commit sub-step timing ---
-	monitor.LogBlockExecCommitSubstep(block.Height, cT1.Sub(cT0), cT3.Sub(cT2))
+	monitor.LogBlockExecCommitSubstep(block.Height, cT1.Sub(cT0), cT2.Sub(cT1), cT3.Sub(cT2), cT5.Sub(cT4))
 
 	// Update mempool.
 	go blockExec.asyncUpdateMempool(unlockMempool, block, state.Copy(), abciResponse)

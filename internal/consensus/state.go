@@ -1278,8 +1278,8 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 		cs.Logger.Error("Propose step; failed signing proposal", "height", height, "round", round, "err", err)
 	}
 
-	// --- Loki: emit proposal packaging timing (leader only) ---
-	fmt.Printf("msg=propose_timing height=%d round=%d pack_total_ms=%.3f\n",
+	// defaultDecideProposal 总耗时（leader only）
+	fmt.Printf("msg=decide_proposal_timing height=%d round=%d pack_total_ms=%.3f\n",
 		height, round, float64(time.Since(t0).Nanoseconds())/1e6)
 }
 

@@ -684,8 +684,17 @@ func (mem *CListMempool) notifyTxsAvailable() {
 
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
+	tLockStart := time.Now()
 	mem.updateMtx.RLock()
+	lockWaitMs := float64(time.Since(tLockStart).Nanoseconds()) / 1e6
 	defer mem.updateMtx.RUnlock()
+
+	tReap := time.Now()
+	defer func() {
+		reapMs := float64(time.Since(tReap).Nanoseconds()) / 1e6
+		fmt.Printf("msg=reap_lock_timing height=%d lock_wait_ms=%.3f reap_ms=%.3f\n",
+			mem.height.Load(), lockWaitMs, reapMs)
+	}()
 
 	var (
 		totalGas    int64
@@ -842,8 +851,12 @@ func (mem *CListMempool) recheckTxs() {
 		return
 	}
 
+	tRecheck := time.Now()
+	numTxs := mem.Size()
+
 	mem.recheck.init()
 
+	tSend := time.Now()
 	iter := NewNonBlockingIterator(mem)
 	for {
 		memTx := iter.Next()
@@ -865,18 +878,30 @@ func (mem *CListMempool) recheckTxs() {
 		}
 		resReq.SetCallback(mem.handleRecheckTxResponse(memTx.Tx()))
 	}
+	sendMs := float64(time.Since(tSend).Nanoseconds()) / 1e6
 
 	// Flush any pending asynchronous recheck requests to process.
+	tFlush := time.Now()
 	mem.proxyAppConn.Flush(context.TODO())
+	flushMs := float64(time.Since(tFlush).Nanoseconds()) / 1e6
 
 	// Give some time to finish processing the responses; then finish the rechecking process, even
 	// if not all txs were rechecked.
+	tWait := time.Now()
+	timedOut := false
 	select {
 	case <-time.After(mem.config.RecheckTimeout):
 		mem.recheck.setDone()
 		mem.logger.Error("Timed out waiting for recheck responses")
+		timedOut = true
 	case <-mem.recheck.doneRechecking():
 	}
+	waitMs := float64(time.Since(tWait).Nanoseconds()) / 1e6
+	totalMs := float64(time.Since(tRecheck).Nanoseconds()) / 1e6
+
+	// logfmt: Loki 可直接解析
+	fmt.Printf("msg=recheck_timing height=%d num_txs=%d send_ms=%.3f flush_ms=%.3f wait_ms=%.3f total_ms=%.3f timed_out=%v\n",
+		mem.height.Load(), numTxs, sendMs, flushMs, waitMs, totalMs, timedOut)
 
 	if n := mem.recheck.numPendingTxs.Load(); n > 0 {
 		mem.logger.Error("Not all txs were rechecked", "not-rechecked", n)

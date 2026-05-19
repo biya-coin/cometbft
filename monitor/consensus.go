@@ -73,17 +73,17 @@ func (m *ConsensusMonitor) FlushBlock(height int64, txs types.Txs) {
 	numTxs := len(txs)
 
 	// Print individual transaction wait times
-	for _, tx := range txs {
-		enterTime, ok := GetAndRemoveTx(tx.Hash())
-		if ok && !enterTime.IsZero() {
-			waitMs := float64(m.blockStart.Sub(enterTime).Nanoseconds()) / 1e6
-			if waitMs < 0 {
-				waitMs = 0
-			}
-			fmt.Printf("msg=mempool_tx_wait height=%d hash=%X wait_ms=%.2f\n",
-				height, tx.Hash(), waitMs)
-		}
-	}
+	// for _, tx := range txs {
+	// 	enterTime, ok := GetAndRemoveTx(tx.Hash())
+	// 	if ok && !enterTime.IsZero() {
+	// 		waitMs := float64(m.blockStart.Sub(enterTime).Nanoseconds()) / 1e6
+	// 		if waitMs < 0 {
+	// 			waitMs = 0
+	// 		}
+	// 		fmt.Printf("msg=mempool_tx_wait height=%d hash=%X wait_ms=%.2f\n",
+	// 			height, tx.Hash(), waitMs)
+	// 	}
+	// }
 
 	// Explicitly print each phase duration so they are clearly visible in the code and logs.
 	fmt.Printf("msg=txs height=%d txs=%d\n", height, numTxs)
@@ -117,11 +117,14 @@ func LogCommitSubstep(height int64, t0, t3 time.Time) {
 	)
 }
 
-// LogBlockExecCommitSubstep emits the 2 synchronous sub-step latencies inside
-func LogBlockExecCommitSubstep(height int64, t0, t1 time.Duration) {
-	fmt.Printf("msg=block_exec_commit_substep height=%d mempool_preupdate_ms=%.3f abci_commit_ms=%.3f\n",
+// LogBlockExecCommitSubstep emits the 4 synchronous sub-step latencies inside Commit():
+// t0=PreUpdate, t1=Lock, t2=FlushAppConn, t3=ABCI Commit
+func LogBlockExecCommitSubstep(height int64, t0, t1, t2, t3 time.Duration) {
+	fmt.Printf("msg=block_exec_commit_substep height=%d mempool_preupdate_ms=%.3f mempool_lock_ms=%.3f flush_app_conn_ms=%.3f abci_commit_ms=%.3f\n",
 		height,
 		float64(t0.Nanoseconds())/1e6,
 		float64(t1.Nanoseconds())/1e6,
+		float64(t2.Nanoseconds())/1e6,
+		float64(t3.Nanoseconds())/1e6,
 	)
 }
