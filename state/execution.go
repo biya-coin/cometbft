@@ -176,6 +176,8 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	// CreateProposalBlock 各子步骤汇总
 	fmt.Printf("msg=create_proposal_block_timing height=%d reap_ms=%.3f prepare_proposal_ms=%.3f\n",
 		height, reapMs, prepareMs)
+	monitor.ReapSeconds.Observe(reapMs / 1000)
+	monitor.PrepareProposalExecSeconds.Observe(prepareMs / 1000)
 
 	return finalBlock, nil
 }

@@ -694,6 +694,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) types.Txs {
 		reapMs := float64(time.Since(tReap).Nanoseconds()) / 1e6
 		fmt.Printf("msg=reap_lock_timing height=%d lock_wait_ms=%.3f reap_ms=%.3f\n",
 			mem.height.Load(), lockWaitMs, reapMs)
+		monitor.ReapLockWaitSeconds.Observe(lockWaitMs / 1000)
 	}()
 
 	var (

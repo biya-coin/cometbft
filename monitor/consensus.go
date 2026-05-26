@@ -91,22 +91,41 @@ func (m *ConsensusMonitor) FlushBlock(height int64, txs types.Txs) {
 		height,
 		m.newHeightMs, m.newRoundMs, m.proposeMs, m.prevoteMs, m.prevoteWaitMs, m.precommitMs, m.precommitWaitMs, m.commitMs, totalMs)
 
+	// Prometheus
+	TxsPerBlock.Observe(float64(numTxs))
+	ConsensusPhaseSeconds.WithLabelValues("new_height").Observe(m.newHeightMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("new_round").Observe(m.newRoundMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("propose").Observe(m.proposeMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("prevote").Observe(m.prevoteMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("prevote_wait").Observe(m.prevoteWaitMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("precommit").Observe(m.precommitMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("precommit_wait").Observe(m.precommitWaitMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("commit").Observe(m.commitMs / 1000)
+	ConsensusPhaseSeconds.WithLabelValues("total").Observe(totalMs / 1000)
+
 	// Initialize for the next block cycle by reusing the constructor.
 	*m = *NewConsensusMonitor()
 }
 
 // LogApplyBlockSubstep emits the 7 sub-step latencies for ApplyVerifiedBlock.
 func LogApplyBlockSubstep(height int64, t0, t1, t2, t3, t4, t5, t6, t7 time.Time) {
+	ab1 := float64(t1.Sub(t0).Nanoseconds()) / 1e6
+	ab2 := float64(t2.Sub(t1).Nanoseconds()) / 1e6
+	ab3 := float64(t3.Sub(t2).Nanoseconds()) / 1e6
+	ab4 := float64(t4.Sub(t3).Nanoseconds()) / 1e6
+	ab5 := float64(t5.Sub(t4).Nanoseconds()) / 1e6
+	ab6 := float64(t6.Sub(t5).Nanoseconds()) / 1e6
+	ab7 := float64(t7.Sub(t6).Nanoseconds()) / 1e6
 	fmt.Printf("msg=apply_block_substep height=%d ab1_finalize_ms=%.3f ab2_save_resp_ms=%.3f ab3_update_state_ms=%.3f ab4_commit_ms=%.3f ab5_evpool_ms=%.3f ab6_store_save_ms=%.3f ab7_fire_events_ms=%.3f\n",
-		height,
-		float64(t1.Sub(t0).Nanoseconds())/1e6,
-		float64(t2.Sub(t1).Nanoseconds())/1e6,
-		float64(t3.Sub(t2).Nanoseconds())/1e6,
-		float64(t4.Sub(t3).Nanoseconds())/1e6,
-		float64(t5.Sub(t4).Nanoseconds())/1e6,
-		float64(t6.Sub(t5).Nanoseconds())/1e6,
-		float64(t7.Sub(t6).Nanoseconds())/1e6,
-	)
+		height, ab1, ab2, ab3, ab4, ab5, ab6, ab7)
+	// Prometheus
+	ApplyBlockStepSeconds.WithLabelValues("ab1_finalize").Observe(ab1 / 1000)
+	ApplyBlockStepSeconds.WithLabelValues("ab2_save_resp").Observe(ab2 / 1000)
+	ApplyBlockStepSeconds.WithLabelValues("ab3_update_state").Observe(ab3 / 1000)
+	ApplyBlockStepSeconds.WithLabelValues("ab4_commit").Observe(ab4 / 1000)
+	ApplyBlockStepSeconds.WithLabelValues("ab5_evpool").Observe(ab5 / 1000)
+	ApplyBlockStepSeconds.WithLabelValues("ab6_store_save").Observe(ab6 / 1000)
+	ApplyBlockStepSeconds.WithLabelValues("ab7_fire_events").Observe(ab7 / 1000)
 }
 
 // LogCommitSubstep emits the ApplyVerifiedBlock latency for the commit phase.
@@ -120,11 +139,15 @@ func LogCommitSubstep(height int64, t0, t3 time.Time) {
 // LogBlockExecCommitSubstep emits the 4 synchronous sub-step latencies inside Commit():
 // t0=PreUpdate, t1=Lock, t2=FlushAppConn, t3=ABCI Commit
 func LogBlockExecCommitSubstep(height int64, t0, t1, t2, t3 time.Duration) {
+	p := float64(t0.Nanoseconds()) / 1e6
+	l := float64(t1.Nanoseconds()) / 1e6
+	f := float64(t2.Nanoseconds()) / 1e6
+	a := float64(t3.Nanoseconds()) / 1e6
 	fmt.Printf("msg=block_exec_commit_substep height=%d mempool_preupdate_ms=%.3f mempool_lock_ms=%.3f flush_app_conn_ms=%.3f abci_commit_ms=%.3f\n",
-		height,
-		float64(t0.Nanoseconds())/1e6,
-		float64(t1.Nanoseconds())/1e6,
-		float64(t2.Nanoseconds())/1e6,
-		float64(t3.Nanoseconds())/1e6,
-	)
+		height, p, l, f, a)
+	// Prometheus
+	CommitStepSeconds.WithLabelValues("mempool_preupdate").Observe(p / 1000)
+	CommitStepSeconds.WithLabelValues("mempool_lock").Observe(l / 1000)
+	CommitStepSeconds.WithLabelValues("flush_app_conn").Observe(f / 1000)
+	CommitStepSeconds.WithLabelValues("abci_commit").Observe(a / 1000)
 }

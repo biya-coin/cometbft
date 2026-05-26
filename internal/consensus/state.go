@@ -1175,6 +1175,7 @@ func (cs *State) enterPropose(height int64, round int32) {
 
 	defer func() {
 		// Done enterPropose:
+		fmt.Printf("=debug= 进入propose, height=%d, ts=%s\n", height, time.Now().Format("2006-01-02 15:04:05.000"))
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
 
@@ -1279,8 +1280,10 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	}
 
 	// defaultDecideProposal 总耗时（leader only）
+	totalMs := float64(time.Since(t0).Nanoseconds()) / 1e6
 	fmt.Printf("msg=decide_proposal_timing height=%d round=%d pack_total_ms=%.3f\n",
-		height, round, float64(time.Since(t0).Nanoseconds())/1e6)
+		height, round, totalMs)
+	monitor.DecideProposalSeconds.Observe(totalMs / 1000)
 }
 
 // Returns true if the proposal block is complete &&
