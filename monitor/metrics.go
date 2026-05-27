@@ -70,53 +70,6 @@ var (
 		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5},
 	})
 
-	PrepareLaneSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "proposal",
-		Name:      "prepare_lane_seconds",
-		Help:      "Time spent in PrepareLane per lane (handler / get_info / update).",
-		Buckets:   []float64{0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2},
-	}, []string{"lane", "step"}) // step: handler / get_info / update
-)
-
-// ── FinalizeBlock / internalFinalizeBlock（秒） ──────────────────────────────
-// 对应 msg=app_finalize_block / msg=app_internal_finalize_block
-var (
-	FinalizeBlockSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "finalize",
-		Name:      "block_duration_seconds",
-		Help:      "Total FinalizeBlock duration (ABCI call, app side).",
-		Buckets:   []float64{0.5, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15},
-	})
-
-	WorkingHashSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "finalize",
-		Name:      "working_hash_seconds",
-		Help:      "Time to compute WorkingHash after FinalizeBlock.",
-		Buckets:   []float64{0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4},
-	})
-
-	InternalFinalizeBlockSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "finalize",
-		Name:      "internal_step_seconds",
-		Help:      "Sub-step durations inside internalFinalizeBlock.",
-		Buckets:   []float64{0.1, 0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8},
-	}, []string{"step"}) // begin_block / execute_txs / end_block / total
-)
-
-// ── ExecuteTxs 子步骤（秒） ──────────────────────────────────────────────────
-// 对应 msg=execute_txs_substep
-var (
-	ExecuteTxsStepSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "execute_txs",
-		Name:      "step_seconds",
-		Help:      "Per-block time for ante / msgs / post handler across all txs.",
-		Buckets:   []float64{0.1, 0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8},
-	}, []string{"step"}) // ante / msgs / post
 )
 
 // ── ApplyBlock 子步骤（秒） ──────────────────────────────────────────────────
@@ -143,33 +96,6 @@ var (
 	}, []string{"step"}) // mempool_preupdate / mempool_lock / flush_app_conn / abci_commit
 )
 
-// ── BaseApp / rootmulti Commit（秒） ─────────────────────────────────────────
-// 对应 msg=baseapp_commit_timing / msg=rootmulti_commit_timing
-var (
-	BaseAppCommitSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "baseapp_commit",
-		Name:      "step_seconds",
-		Help:      "BaseApp Commit sub-step durations.",
-		Buckets:   []float64{0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2},
-	}, []string{"step"}) // total / cms_commit
-
-	RootmultiCommitSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "rootmulti_commit",
-		Name:      "step_seconds",
-		Help:      "rootmulti.Commit sub-step durations.",
-		Buckets:   []float64{0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2},
-	}, []string{"step"}) // total / version_calc / commit_stores / flush_metadata / cleanup_removed / prune
-
-	RootmultiStoreCommitSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "rootmulti_commit",
-		Name:      "store_seconds",
-		Help:      "Per-store commit duration inside rootmulti.Commit.",
-		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5},
-	}, []string{"store"})
-)
 
 // ── Mempool reap lock wait（秒） ──────────────────────────────────────────
 // 对应 msg=reap_lock_timing
