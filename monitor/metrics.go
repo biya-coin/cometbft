@@ -97,6 +97,18 @@ var (
 )
 
 
+// ── SeiDB flush SS（秒） ─────────────────────────────────────────────────────
+// 对应 msg=seidb_flush_ss_timing
+var (
+	SeidbFlushSSSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "seidb_flush",
+		Name:      "ss_seconds",
+		Help:      "Duration of SS flush inside seidb rootmulti flush().",
+		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2},
+	})
+)
+
 // ── Mempool reap lock wait（秒） ──────────────────────────────────────────
 // 对应 msg=reap_lock_timing
 var (
