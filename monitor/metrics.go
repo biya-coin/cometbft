@@ -69,7 +69,6 @@ var (
 		Help:      "Execution time of PrepareProposal ABCI call.",
 		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5},
 	})
-
 )
 
 // ── ApplyBlock 子步骤（秒） ──────────────────────────────────────────────────
@@ -96,7 +95,6 @@ var (
 	}, []string{"step"}) // mempool_preupdate / mempool_lock / flush_app_conn / abci_commit
 )
 
-
 // ── SeiDB flush SS（秒） ─────────────────────────────────────────────────────
 // 对应 msg=seidb_flush_ss_timing
 var (
@@ -106,6 +104,30 @@ var (
 		Name:      "ss_seconds",
 		Help:      "Duration of SS flush inside seidb rootmulti flush().",
 		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2},
+	})
+)
+
+// ── SeiDB SC apply changeset（秒） ───────────────────────────────────────────
+// 对应 msg=seidb_sc_apply_changeset_timing
+var (
+	SeidbSCApplyChangesetSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "seidb_sc",
+		Name:      "apply_changeset_seconds",
+		Help:      "Duration of SC ApplyChangeSets inside seidb rootmulti flush().",
+		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5},
+	})
+)
+
+// ── SeiDB compute hash（秒） ─────────────────────────────────────────────────
+// 对应 msg=seidb_compute_hash_timing
+var (
+	SeidbComputeHashSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "seidb_hash",
+		Name:      "compute_seconds",
+		Help:      "Duration of WorkingCommitInfo + CommitInfo.Hash in seidb WorkingHash().",
+		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5},
 	})
 )
 
