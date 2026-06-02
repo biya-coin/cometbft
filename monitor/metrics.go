@@ -98,6 +98,14 @@ var (
 // ── SeiDB flush SS（秒） ─────────────────────────────────────────────────────
 // 对应 msg=seidb_flush_ss_timing
 var (
+	SeidbWorkingHashStepSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "seidb_working_hash",
+		Name:      "step_seconds",
+		Help:      "Duration of each SeiDB WorkingHash sub-step.",
+		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5},
+	}, []string{"step"})
+
 	SeidbFlushSSSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: "seidb_flush",
