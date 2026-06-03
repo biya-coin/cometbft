@@ -1268,10 +1268,13 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	walFlushMs := float64(time.Since(walFlushStart).Nanoseconds()) / 1e6
 	monitor.DecideProposalStepSeconds.WithLabelValues("wal_flush_sync").Observe(walFlushMs / 1000)
 
-	// Make proposal
+	// Make proposal — block.Hash() triggers Merkle tree computation; can be non-trivial.
+	makePropStart := time.Now()
 	propBlockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID, block.Header.Time)
 	p := proposal.ToProto()
+	makePropMs := float64(time.Since(makePropStart).Nanoseconds()) / 1e6
+	monitor.DecideProposalStepSeconds.WithLabelValues("make_proposal_id").Observe(makePropMs / 1000)
 
 	signStart := time.Now()
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, p); err == nil {
@@ -1280,12 +1283,15 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 		proposal.Signature = p.Signature
 
 		// send proposal and block parts on internal msg queue
+		sendStart := time.Now()
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, "", cmttime.Now()})
 
 		for i := 0; i < int(blockParts.Total()); i++ {
 			part := blockParts.GetPart(i)
 			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, "", time.Time{}})
 		}
+		sendMs := float64(time.Since(sendStart).Nanoseconds()) / 1e6
+		monitor.DecideProposalStepSeconds.WithLabelValues("send_messages").Observe(sendMs / 1000)
 
 		cs.Logger.Debug("Signed proposal", "height", height, "round", round, "proposal", proposal)
 	} else if !cs.replayMode {
