@@ -69,6 +69,30 @@ var (
 		Help:      "Execution time of PrepareProposal ABCI call.",
 		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5},
 	})
+
+	DecideProposalStepSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "proposal",
+		Name:      "decide_step_seconds",
+		Help:      "Sub-step durations inside defaultDecideProposal.",
+		Buckets:   []float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+	}, []string{"step"})
+
+	CreateProposalBlockSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "proposal",
+		Name:      "create_block_seconds",
+		Help:      "Time spent in consensus State.createProposalBlock.",
+		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5},
+	})
+
+	CreateProposalBlockStepSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "proposal",
+		Name:      "create_block_step_seconds",
+		Help:      "Sub-step durations inside consensus State.createProposalBlock.",
+		Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5},
+	}, []string{"step"})
 )
 
 // ── ApplyBlock 子步骤（秒） ──────────────────────────────────────────────────
