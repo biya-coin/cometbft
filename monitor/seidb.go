@@ -22,3 +22,17 @@ func LogSeidbWorkingHashTiming(version int64, totalMs float64) {
 	SeidbWorkingHashStepSeconds.WithLabelValues("compute_hash").Observe(totalMs / 1000)
 	SeidbComputeHashSeconds.Observe(totalMs / 1000)
 }
+
+// LogWorkingHashMsWrite emits finalizeBlockState.ms.Write() latency in BaseApp.workingHash().
+func LogWorkingHashMsWrite(height int64, totalMs float64) {
+	fmt.Printf("msg=working_hash_ms_write_timing height=%d total_ms=%.3f\n", height, totalMs)
+	SeidbWorkingHashStepSeconds.WithLabelValues("ms_write").Observe(totalMs / 1000)
+	WorkingHashMsWriteSeconds.Observe(totalMs / 1000)
+}
+
+// LogWorkingHashCmsWorkingHash emits cms.WorkingHash() latency in BaseApp.workingHash().
+func LogWorkingHashCmsWorkingHash(height int64, totalMs float64) {
+	fmt.Printf("msg=working_hash_cms_working_hash_timing height=%d total_ms=%.3f\n", height, totalMs)
+	SeidbWorkingHashStepSeconds.WithLabelValues("cms_working_hash").Observe(totalMs / 1000)
+	WorkingHashCmsWorkingHashSeconds.Observe(totalMs / 1000)
+}
