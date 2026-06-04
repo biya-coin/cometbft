@@ -46,14 +46,6 @@ var (
 		Buckets:   []float64{0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5},
 	})
 
-	ReapSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: "proposal",
-		Name:      "reap_duration_seconds",
-		Help:      "Time to reap transactions from mempool (ReapMaxBytesMaxGas).",
-		Buckets:   []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5},
-	})
-
 	PrepareProposalLockWaitSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: "proposal",

@@ -120,8 +120,6 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		maxBytes = int64(types.MaxBlockSizeBytes)
 	}
 
-	maxGas := state.ConsensusParams.Block.MaxGas
-
 	pendingEvidenceStart := time.Now()
 	evidence, evSize := blockExec.evpool.PendingEvidence(state.ConsensusParams.Evidence.MaxBytes)
 	pendingEvidenceMs := float64(time.Since(pendingEvidenceStart).Nanoseconds()) / 1e6
@@ -129,15 +127,6 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 
 	// Fetch a limited amount of valid txs
 	maxDataBytes := types.MaxDataBytes(maxBytes, evSize, state.Validators.Size())
-	maxReapBytes := maxDataBytes
-	if emptyMaxBytes {
-		maxReapBytes = -1
-	}
-
-	t1 := time.Now()
-	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxReapBytes, maxGas)
-	reapMs := float64(time.Since(t1).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("reap").Observe(reapMs / 1000)
 
 	commitStart := time.Now()
 	commit := lastExtCommit.ToCommit()
@@ -145,6 +134,7 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	monitor.CreateProposalBlockStepSeconds.WithLabelValues("to_commit").Observe(commitMs / 1000)
 
 	makeBlockStart := time.Now()
+	txs := types.Txs{}
 	block := state.MakeBlock(height, txs, commit, evidence, proposerAddr)
 	makeBlockMs := float64(time.Since(makeBlockStart).Nanoseconds()) / 1e6
 	monitor.CreateProposalBlockStepSeconds.WithLabelValues("make_block").Observe(makeBlockMs / 1000)
@@ -196,8 +186,6 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	finalBlock := state.MakeBlock(height, txl, commit, evidence, proposerAddr)
 	finalMakeBlockMs := float64(time.Since(finalMakeBlockStart).Nanoseconds()) / 1e6
 	monitor.CreateProposalBlockStepSeconds.WithLabelValues("final_make_block").Observe(finalMakeBlockMs / 1000)
-
-	monitor.ReapSeconds.Observe(reapMs / 1000)
 
 	return finalBlock, nil
 }
