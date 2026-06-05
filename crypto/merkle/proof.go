@@ -81,7 +81,7 @@ func ProofsFromByteSlices(items [][]byte) (rootHash []byte, proofs []*Proof) {
 // proofs as ProofsFromByteSlices, but parallelizes large subtrees and proof
 // flattening up to the current GOMAXPROCS budget.
 func ProofsFromByteSlicesParallel(items [][]byte) (rootHash []byte, proofs []*Proof) {
-	if len(items) < hashFromByteSlicesParallelMinSize {
+	if len(items) < proofsFromByteSlicesParallelMinSize {
 		return ProofsFromByteSlices(items)
 	}
 
@@ -95,6 +95,8 @@ func ProofsFromByteSlicesParallel(items [][]byte) (rootHash []byte, proofs []*Pr
 	proofs = proofsFromTrailsParallel(trails, len(items))
 	return rootHash, proofs
 }
+
+const proofsFromByteSlicesParallelMinSize = 32
 
 // Verify that the Proof proves the root hash.
 // Check sp.Index/sp.Total manually if needed.
@@ -328,7 +330,7 @@ func trailsFromByteSlicesInternalParallel(hash hash.Hash, items [][]byte, parall
 		trail := &ProofNode{leafHashOpt(hash, items[0]), nil, nil, nil}
 		return []*ProofNode{trail}, trail
 	default:
-		if len(items) < hashFromByteSlicesParallelMinSize || !consumeParallelBudget(parallelBudget) {
+		if len(items) < proofsFromByteSlicesParallelMinSize || !consumeParallelBudget(parallelBudget) {
 			return trailsFromByteSlicesInternal(hash, items)
 		}
 
