@@ -1250,7 +1250,7 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 		}
 		cs.metrics.ProposalCreateCount.Add(1)
 		makePartSetStart := time.Now()
-		blockParts, err = block.MakePartSet(types.BlockPartSizeBytes)
+		blockParts, err = block.MakePartSetParallel(types.BlockPartSizeBytes)
 		makePartSetMs := float64(time.Since(makePartSetStart).Nanoseconds()) / 1e6
 		monitor.DecideProposalStepSeconds.WithLabelValues("make_part_set").Observe(makePartSetMs / 1000)
 		if err != nil {

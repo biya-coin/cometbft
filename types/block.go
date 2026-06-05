@@ -145,6 +145,17 @@ func (b *Block) Hash() cmtbytes.HexBytes {
 // This is the form in which the block is gossipped to peers.
 // CONTRACT: partSize is greater than zero.
 func (b *Block) MakePartSet(partSize uint32) (*PartSet, error) {
+	return b.makePartSet(partSize, NewPartSetFromData)
+}
+
+// MakePartSetParallel returns a PartSet containing parts of a serialized block,
+// using parallel Merkle proof generation for large part sets.
+// CONTRACT: partSize is greater than zero.
+func (b *Block) MakePartSetParallel(partSize uint32) (*PartSet, error) {
+	return b.makePartSet(partSize, NewPartSetFromDataParallel)
+}
+
+func (b *Block) makePartSet(partSize uint32, partSetFn func([]byte, uint32) *PartSet) (*PartSet, error) {
 	if b == nil {
 		return nil, errors.New("nil block")
 	}
@@ -159,7 +170,7 @@ func (b *Block) MakePartSet(partSize uint32) (*PartSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewPartSetFromData(bz, partSize), nil
+	return partSetFn(bz, partSize), nil
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
