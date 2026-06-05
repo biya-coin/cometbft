@@ -1352,10 +1352,7 @@ func (cs *State) createProposalBlock(ctx context.Context) (*types.Block, error) 
 
 	proposerAddr := cs.privValidatorPubKey.Address()
 
-	blockExecStart := time.Now()
 	ret, err := cs.blockExec.CreateProposalBlock(ctx, cs.Height, cs.state, lastExtCommit, proposerAddr)
-	blockExecMs := float64(time.Since(blockExecStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("block_exec_create_proposal_block").Observe(blockExecMs / 1000)
 	if err != nil {
 		panic(err)
 	}

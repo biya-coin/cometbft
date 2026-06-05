@@ -2,13 +2,10 @@ package abcicli
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/libs/service"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
-	"github.com/cometbft/cometbft/monitor"
 )
 
 // NOTE: use defer to unlock mutex because Application might panic (e.g., in
@@ -161,17 +158,10 @@ func (app *localClient) ApplySnapshotChunk(ctx context.Context,
 }
 
 func (app *localClient) PrepareProposal(ctx context.Context, req *types.PrepareProposalRequest) (*types.PrepareProposalResponse, error) {
-	tLockStart := time.Now()
 	app.mtx.Lock()
-	lockWaitMs := float64(time.Since(tLockStart).Nanoseconds()) / 1e6
 	defer app.mtx.Unlock()
-	tExec := time.Now()
-	res, err := app.Application.PrepareProposal(ctx, req)
-	execMs := float64(time.Since(tExec).Nanoseconds()) / 1e6
-	fmt.Printf("msg=local_client_prepare_proposal_timing height=%d lock_wait_ms=%.3f exec_ms=%.3f\n", req.Height, lockWaitMs, execMs)
-	monitor.PrepareProposalLockWaitSeconds.Observe(lockWaitMs / 1000)
-	monitor.PrepareProposalExecSeconds.Observe(execMs / 1000)
-	return res, err
+
+	return app.Application.PrepareProposal(ctx, req)
 }
 
 func (app *localClient) ProcessProposal(ctx context.Context, req *types.ProcessProposalRequest) (*types.ProcessProposalResponse, error) {

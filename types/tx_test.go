@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
+	"github.com/cometbft/cometbft/crypto/merkle"
 	cmtrand "github.com/cometbft/cometbft/internal/rand"
 	ctest "github.com/cometbft/cometbft/libs/test"
 )
@@ -91,6 +93,34 @@ func TestValidTxProof(t *testing.T) {
 				require.NoError(t, p2.Validate(root), "%d: %d", h, i)
 			}
 		}
+	}
+}
+
+func TestTxsHashListParallelMatchesSerial(t *testing.T) {
+	for _, count := range []int{0, 1, 100, 1024, 1025, 20_000} {
+		t.Run(fmt.Sprintf("count_%d", count), func(t *testing.T) {
+			txs := makeTxs(count, 256)
+			require.Equal(t, txs.hashList(), txs.hashListParallel())
+
+			serialRoot := merkle.HashFromByteSlices(txs.hashList())
+			require.Equal(t, serialRoot, txs.Hash())
+		})
+	}
+}
+
+func BenchmarkTxsHash(b *testing.B) {
+	for _, count := range []int{1024, 10_000, 20_000} {
+		txs := makeTxs(count, 256)
+		b.Run(fmt.Sprintf("serial_%d", count), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = merkle.HashFromByteSlices(txs.hashList())
+			}
+		})
+		b.Run(fmt.Sprintf("parallel_%d", count), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = txs.Hash()
+			}
+		})
 	}
 }
 

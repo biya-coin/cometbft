@@ -158,17 +158,11 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		return nil, err
 	}
 
-	toTxsStart := time.Now()
 	txl := types.ToTxs(rpp.Txs)
-	toTxsMs := float64(time.Since(toTxsStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("to_txs").Observe(toTxsMs / 1000)
 
-	validateTxsStart := time.Now()
 	if err := txl.Validate(maxDataBytes); err != nil {
 		return nil, err
 	}
-	validateTxsMs := float64(time.Since(validateTxsStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("validate_txs").Observe(validateTxsMs / 1000)
 
 	finalMakeBlockStart := time.Now()
 	finalBlock := state.MakeBlock(height, txl, commit, evidence, proposerAddr)
