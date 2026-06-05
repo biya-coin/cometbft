@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"time"
 
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
 	"github.com/cometbft/cometbft/crypto/merkle"
@@ -49,8 +50,14 @@ type Txs []Tx
 // Hash returns the Merkle root hash of the transaction hashes.
 // i.e. the leaves of the tree are the hashes of the txs.
 func (txs Txs) Hash() []byte {
+	hashListStart := time.Now()
 	hl := txs.hashList()
-	return merkle.HashFromByteSlices(hl)
+	txHashStepSeconds.WithLabelValues("hash_list").Observe(float64(time.Since(hashListStart).Nanoseconds()) / 1e9)
+
+	merkleStart := time.Now()
+	hash := merkle.HashFromByteSlices(hl)
+	txHashStepSeconds.WithLabelValues("merkle_root").Observe(float64(time.Since(merkleStart).Nanoseconds()) / 1e9)
+	return hash
 }
 
 // Index returns the index of this transaction in the list, or -1 if not found.

@@ -120,26 +120,16 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		maxBytes = int64(types.MaxBlockSizeBytes)
 	}
 
-	pendingEvidenceStart := time.Now()
 	evidence, evSize := blockExec.evpool.PendingEvidence(state.ConsensusParams.Evidence.MaxBytes)
-	pendingEvidenceMs := float64(time.Since(pendingEvidenceStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("pending_evidence").Observe(pendingEvidenceMs / 1000)
 
 	// Fetch a limited amount of valid txs
 	maxDataBytes := types.MaxDataBytes(maxBytes, evSize, state.Validators.Size())
 
-	commitStart := time.Now()
 	commit := lastExtCommit.ToCommit()
-	commitMs := float64(time.Since(commitStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("to_commit").Observe(commitMs / 1000)
 
-	makeBlockStart := time.Now()
 	txs := types.Txs{}
 	block := state.MakeBlock(height, txs, commit, evidence, proposerAddr)
-	makeBlockMs := float64(time.Since(makeBlockStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("make_block").Observe(makeBlockMs / 1000)
 
-	prepareRequestStart := time.Now()
 	prepareRequest := &abci.PrepareProposalRequest{
 		MaxTxBytes:         maxDataBytes,
 		Txs:                block.Txs.ToSliceOfBytes(),
@@ -150,8 +140,6 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		NextValidatorsHash: block.NextValidatorsHash,
 		ProposerAddress:    block.ProposerAddress,
 	}
-	prepareRequestMs := float64(time.Since(prepareRequestStart).Nanoseconds()) / 1e6
-	monitor.CreateProposalBlockStepSeconds.WithLabelValues("prepare_request").Observe(prepareRequestMs / 1000)
 
 	t3 := time.Now()
 	rpp, err := blockExec.proxyApp.PrepareProposal(ctx, prepareRequest)
