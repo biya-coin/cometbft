@@ -35,6 +35,11 @@ message BlockParams {
   // Must be greater or equal to -1. If set to -1, no limit is enforced.
   int64 max_gas = 2;
 
+  // Maximum number of transactions included in a block.
+  //
+  // Must be greater or equal to -1. If set to -1, no limit is enforced.
+  int64 max_txs = 4;
+
   reserved 3;  // was TimeIotaMs see https://github.com/tendermint/tendermint/pull/5792
 }
 
@@ -88,6 +93,7 @@ message VersionParams {
 message HashedParams {
   int64 block_max_bytes = 1;
   int64 block_max_gas   = 2;
+  int64 block_max_txs   = 3;
 }
 
 // SynchronyParams determine the validity of block timestamps.

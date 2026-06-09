@@ -30,6 +30,9 @@ message BlockParams {
   //
   // Not exposed to the application.
   int64 time_iota_ms = 3;
+  // Max transactions per block.
+  // Note: must be greater or equal to -1
+  int64 max_txs = 4;
 }
 
 // EvidenceParams determine how we handle evidence of malfeasance.

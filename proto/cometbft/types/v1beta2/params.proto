@@ -26,5 +26,9 @@ message BlockParams {
   // Note: must be greater or equal to -1
   int64 max_gas = 2;
 
+  // Max transactions per block.
+  // Note: must be greater or equal to -1
+  int64 max_txs = 4;
+
   reserved 3;  // was TimeIotaMs see https://github.com/tendermint/tendermint/pull/5792
 }

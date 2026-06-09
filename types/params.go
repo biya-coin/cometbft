@@ -67,6 +67,7 @@ type ConsensusParams struct {
 type BlockParams struct {
 	MaxBytes int64 `json:"max_bytes"`
 	MaxGas   int64 `json:"max_gas"`
+	MaxTxs   int64 `json:"max_txs"`
 }
 
 // EvidenceParams determine the validity of evidences of Byzantine behavior.
@@ -181,6 +182,7 @@ func DefaultBlockParams() BlockParams {
 	return BlockParams{
 		MaxBytes: 4194304,  // four megabytes
 		MaxGas:   10000000, // ten million
+		MaxTxs:   10000,
 	}
 }
 
@@ -252,6 +254,10 @@ func (params ConsensusParams) ValidateBasic() error {
 	if params.Block.MaxGas < -1 {
 		return fmt.Errorf("block.MaxGas must be greater or equal to -1. Got %d",
 			params.Block.MaxGas)
+	}
+	if params.Block.MaxTxs < -1 {
+		return fmt.Errorf("block.MaxTxs must be greater or equal to -1. Got %d",
+			params.Block.MaxTxs)
 	}
 
 	if params.Evidence.MaxAgeNumBlocks <= 0 {
@@ -417,6 +423,7 @@ func (params ConsensusParams) Hash() []byte {
 	hp := cmtproto.HashedParams{
 		BlockMaxBytes: params.Block.MaxBytes,
 		BlockMaxGas:   params.Block.MaxGas,
+		BlockMaxTxs:   params.Block.MaxTxs,
 	}
 
 	bz, err := hp.Marshal()
@@ -444,6 +451,7 @@ func (params ConsensusParams) Update(params2 *cmtproto.ConsensusParams) Consensu
 	if params2.Block != nil {
 		res.Block.MaxBytes = params2.Block.MaxBytes
 		res.Block.MaxGas = params2.Block.MaxGas
+		res.Block.MaxTxs = params2.Block.MaxTxs
 	}
 	if params2.Evidence != nil {
 		res.Evidence.MaxAgeNumBlocks = params2.Evidence.MaxAgeNumBlocks
@@ -484,6 +492,7 @@ func (params *ConsensusParams) ToProto() cmtproto.ConsensusParams {
 		Block: &cmtproto.BlockParams{
 			MaxBytes: params.Block.MaxBytes,
 			MaxGas:   params.Block.MaxGas,
+			MaxTxs:   params.Block.MaxTxs,
 		},
 		Evidence: &cmtproto.EvidenceParams{
 			MaxAgeNumBlocks: params.Evidence.MaxAgeNumBlocks,
@@ -512,6 +521,7 @@ func ConsensusParamsFromProto(pbParams cmtproto.ConsensusParams) ConsensusParams
 		Block: BlockParams{
 			MaxBytes: pbParams.Block.MaxBytes,
 			MaxGas:   pbParams.Block.MaxGas,
+			MaxTxs:   pbParams.Block.MaxTxs,
 		},
 		Evidence: EvidenceParams{
 			MaxAgeNumBlocks: pbParams.Evidence.MaxAgeNumBlocks,
