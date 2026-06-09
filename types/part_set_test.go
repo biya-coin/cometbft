@@ -64,6 +64,25 @@ func TestBasicPartSet(t *testing.T) {
 	assert.Equal(t, data, data2)
 }
 
+func TestPartSetFromDataParallelMatchesSerial(t *testing.T) {
+	for _, nParts := range []int{0, 1, 2, 5, 100, 1023, 1024, 1025, 2000} {
+		t.Run(fmt.Sprintf("nParts=%d", nParts), func(t *testing.T) {
+			data := cmtrand.Bytes(testPartSize * nParts)
+			serial := NewPartSetFromData(data, testPartSize)
+			parallel := NewPartSetFromDataParallel(data, testPartSize)
+
+			require.Equal(t, serial.Header(), parallel.Header())
+			require.EqualValues(t, serial.Total(), parallel.Total())
+			require.EqualValues(t, serial.Count(), parallel.Count())
+			require.EqualValues(t, serial.ByteSize(), parallel.ByteSize())
+
+			for i := 0; i < int(serial.Total()); i++ {
+				require.Equal(t, serial.GetPart(i), parallel.GetPart(i))
+			}
+		})
+	}
+}
+
 func TestWrongProof(t *testing.T) {
 	// Construct random data of size partSize * 100
 	data := cmtrand.Bytes(testPartSize * 100)

@@ -5,6 +5,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"runtime"
+	"sync"
+	"time"
 
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
 	"github.com/cometbft/cometbft/crypto/merkle"
@@ -49,8 +52,14 @@ type Txs []Tx
 // Hash returns the Merkle root hash of the transaction hashes.
 // i.e. the leaves of the tree are the hashes of the txs.
 func (txs Txs) Hash() []byte {
-	hl := txs.hashList()
-	return merkle.HashFromByteSlices(hl)
+	hashListStart := time.Now()
+	hl := txs.hashListParallel()
+	txHashStepSeconds.WithLabelValues("hash_list").Observe(float64(time.Since(hashListStart).Nanoseconds()) / 1e9)
+
+	merkleStart := time.Now()
+	hash := merkle.HashFromByteSlicesParallel(hl)
+	txHashStepSeconds.WithLabelValues("merkle_root").Observe(float64(time.Since(merkleStart).Nanoseconds()) / 1e9)
+	return hash
 }
 
 // Index returns the index of this transaction in the list, or -1 if not found.
@@ -89,6 +98,37 @@ func (txs Txs) hashList() [][]byte {
 	for i := 0; i < len(txs); i++ {
 		hl[i] = txs[i].Hash()
 	}
+	return hl
+}
+
+func (txs Txs) hashListParallel() [][]byte {
+	hl := make([][]byte, len(txs))
+	if len(txs) == 0 {
+		return hl
+	}
+
+	workers := runtime.GOMAXPROCS(0)
+	if workers > len(txs) {
+		workers = len(txs)
+	}
+
+	chunk := (len(txs) + workers - 1) / workers
+	var wg sync.WaitGroup
+	for start := 0; start < len(txs); start += chunk {
+		end := start + chunk
+		if end > len(txs) {
+			end = len(txs)
+		}
+
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+			for i := start; i < end; i++ {
+				hl[i] = txs[i].Hash()
+			}
+		}(start, end)
+	}
+	wg.Wait()
 	return hl
 }
 

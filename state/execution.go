@@ -120,39 +120,31 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 		maxBytes = int64(types.MaxBlockSizeBytes)
 	}
 
-	maxGas := state.ConsensusParams.Block.MaxGas
-
 	evidence, evSize := blockExec.evpool.PendingEvidence(state.ConsensusParams.Evidence.MaxBytes)
 
 	// Fetch a limited amount of valid txs
 	maxDataBytes := types.MaxDataBytes(maxBytes, evSize, state.Validators.Size())
-	maxReapBytes := maxDataBytes
-	if emptyMaxBytes {
-		maxReapBytes = -1
-	}
-
-	t1 := time.Now()
-	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxReapBytes, maxGas)
-	reapMs := float64(time.Since(t1).Nanoseconds()) / 1e6
 
 	commit := lastExtCommit.ToCommit()
+
+	txs := types.Txs{}
 	block := state.MakeBlock(height, txs, commit, evidence, proposerAddr)
 
+	prepareRequest := &abci.PrepareProposalRequest{
+		MaxTxBytes:         maxDataBytes,
+		Txs:                block.Txs.ToSliceOfBytes(),
+		LocalLastCommit:    buildExtendedCommitInfoFromStore(lastExtCommit, blockExec.store, state.InitialHeight, state.ConsensusParams.Feature),
+		Misbehavior:        block.Evidence.Evidence.ToABCI(),
+		Height:             block.Height,
+		Time:               block.Time,
+		NextValidatorsHash: block.NextValidatorsHash,
+		ProposerAddress:    block.ProposerAddress,
+	}
+
 	t3 := time.Now()
-	rpp, err := blockExec.proxyApp.PrepareProposal(
-		ctx,
-		&abci.PrepareProposalRequest{
-			MaxTxBytes:         maxDataBytes,
-			Txs:                block.Txs.ToSliceOfBytes(),
-			LocalLastCommit:    buildExtendedCommitInfoFromStore(lastExtCommit, blockExec.store, state.InitialHeight, state.ConsensusParams.Feature),
-			Misbehavior:        block.Evidence.Evidence.ToABCI(),
-			Height:             block.Height,
-			Time:               block.Time,
-			NextValidatorsHash: block.NextValidatorsHash,
-			ProposerAddress:    block.ProposerAddress,
-		},
-	)
+	rpp, err := blockExec.proxyApp.PrepareProposal(ctx, prepareRequest)
 	prepareMs := float64(time.Since(t3).Nanoseconds()) / 1e6
+	monitor.CreateProposalBlockStepSeconds.WithLabelValues("prepare_proposal").Observe(prepareMs / 1000)
 
 	if err != nil {
 		// The App MUST ensure that only valid (and hence 'processable') transactions
@@ -167,17 +159,15 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 	}
 
 	txl := types.ToTxs(rpp.Txs)
+
 	if err := txl.Validate(maxDataBytes); err != nil {
 		return nil, err
 	}
 
+	finalMakeBlockStart := time.Now()
 	finalBlock := state.MakeBlock(height, txl, commit, evidence, proposerAddr)
-
-	// CreateProposalBlock 各子步骤汇总
-	fmt.Printf("msg=create_proposal_block_timing height=%d reap_ms=%.3f prepare_proposal_ms=%.3f\n",
-		height, reapMs, prepareMs)
-	monitor.ReapSeconds.Observe(reapMs / 1000)
-	monitor.PrepareProposalExecSeconds.Observe(prepareMs / 1000)
+	finalMakeBlockMs := float64(time.Since(finalMakeBlockStart).Nanoseconds()) / 1e6
+	monitor.CreateProposalBlockStepSeconds.WithLabelValues("final_make_block").Observe(finalMakeBlockMs / 1000)
 
 	return finalBlock, nil
 }

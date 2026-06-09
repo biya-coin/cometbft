@@ -192,6 +192,21 @@ type PartSet struct {
 // The data bytes are split into "partSize" chunks, and merkle tree computed.
 // CONTRACT: partSize is greater than zero.
 func NewPartSetFromData(data []byte, partSize uint32) *PartSet {
+	return newPartSetFromData(data, partSize, merkle.ProofsFromByteSlices)
+}
+
+// NewPartSetFromDataParallel returns an immutable, full PartSet from the data
+// bytes, using parallel Merkle proof generation for large part sets.
+// CONTRACT: partSize is greater than zero.
+func NewPartSetFromDataParallel(data []byte, partSize uint32) *PartSet {
+	return newPartSetFromData(data, partSize, merkle.ProofsFromByteSlicesParallel)
+}
+
+func newPartSetFromData(
+	data []byte,
+	partSize uint32,
+	proofsFn func([][]byte) ([]byte, []*merkle.Proof),
+) *PartSet {
 	// divide data into parts of size `partSize`
 	total := (uint32(len(data)) + partSize - 1) / partSize
 	parts := make([]*Part, total)
@@ -205,7 +220,7 @@ func NewPartSetFromData(data []byte, partSize uint32) *PartSet {
 		partsBytes[i] = part.Bytes
 	}
 	// Compute merkle proofs
-	root, proofs := merkle.ProofsFromByteSlices(partsBytes)
+	root, proofs := proofsFn(partsBytes)
 	for i := uint32(0); i < total; i++ {
 		parts[i].Proof = *proofs[i]
 	}

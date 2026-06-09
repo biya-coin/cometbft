@@ -4,12 +4,29 @@ import (
 	"crypto/sha256"
 	"hash"
 	"math/bits"
+	"runtime"
+	"sync/atomic"
 )
 
 // HashFromByteSlices computes a Merkle tree where the leaves are the byte slice,
 // in the provided order. It follows RFC-6962.
 func HashFromByteSlices(items [][]byte) []byte {
 	return hashFromByteSlices(sha256.New(), items)
+}
+
+// HashFromByteSlicesParallel computes the same Merkle root as HashFromByteSlices,
+// but recursively parallelizes large subtrees up to the current GOMAXPROCS budget.
+func HashFromByteSlicesParallel(items [][]byte) []byte {
+	if len(items) < hashFromByteSlicesParallelMinSize {
+		return HashFromByteSlices(items)
+	}
+
+	parallelBudget := int64(runtime.GOMAXPROCS(0) - 1)
+	if parallelBudget <= 0 {
+		return HashFromByteSlices(items)
+	}
+
+	return hashFromByteSlicesParallel(sha256.New(), items, &parallelBudget)
 }
 
 func hashFromByteSlices(sha hash.Hash, items [][]byte) []byte {
@@ -23,6 +40,43 @@ func hashFromByteSlices(sha hash.Hash, items [][]byte) []byte {
 		left := hashFromByteSlices(sha, items[:k])
 		right := hashFromByteSlices(sha, items[k:])
 		return innerHashOpt(sha, left, right)
+	}
+}
+
+const hashFromByteSlicesParallelMinSize = 1024
+
+func hashFromByteSlicesParallel(sha hash.Hash, items [][]byte, parallelBudget *int64) []byte {
+	switch len(items) {
+	case 0:
+		return emptyHash()
+	case 1:
+		return leafHashOpt(sha, items[0])
+	default:
+		if len(items) < hashFromByteSlicesParallelMinSize || !consumeParallelBudget(parallelBudget) {
+			return hashFromByteSlices(sha, items)
+		}
+
+		k := getSplitPoint(int64(len(items)))
+		leftCh := make(chan []byte, 1)
+		go func() {
+			leftCh <- hashFromByteSlicesParallel(sha256.New(), items[:k], parallelBudget)
+		}()
+
+		right := hashFromByteSlicesParallel(sha, items[k:], parallelBudget)
+		left := <-leftCh
+		return innerHashOpt(sha, left, right)
+	}
+}
+
+func consumeParallelBudget(parallelBudget *int64) bool {
+	for {
+		remaining := atomic.LoadInt64(parallelBudget)
+		if remaining <= 0 {
+			return false
+		}
+		if atomic.CompareAndSwapInt64(parallelBudget, remaining, remaining-1) {
+			return true
+		}
 	}
 }
 

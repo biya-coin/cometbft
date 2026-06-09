@@ -1238,7 +1238,10 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	} else {
 		// Create a new proposal block from state/txs from the mempool.
 		var err error
+		createBlockStart := time.Now()
 		block, err = cs.createProposalBlock(context.TODO())
+		createBlockMs := float64(time.Since(createBlockStart).Nanoseconds()) / 1e6
+		monitor.CreateProposalBlockSeconds.Observe(createBlockMs / 1000)
 		if err != nil {
 			cs.Logger.Error("Unable to create proposal block", "error", err)
 			return
@@ -1246,7 +1249,10 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 			panic("Method createProposalBlock should not provide a nil block without errors")
 		}
 		cs.metrics.ProposalCreateCount.Add(1)
-		blockParts, err = block.MakePartSet(types.BlockPartSizeBytes)
+		makePartSetStart := time.Now()
+		blockParts, err = block.MakePartSetParallel(types.BlockPartSizeBytes)
+		makePartSetMs := float64(time.Since(makePartSetStart).Nanoseconds()) / 1e6
+		monitor.DecideProposalStepSeconds.WithLabelValues("make_part_set").Observe(makePartSetMs / 1000)
 		if err != nil {
 			cs.Logger.Error("unable to create proposal block part set", "error", err)
 			return
@@ -1255,15 +1261,22 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
 	// and the privValidator will refuse to sign anything.
+	walFlushStart := time.Now()
 	if err := cs.wal.FlushAndSync(); err != nil {
 		cs.Logger.Error("failed flushing WAL to disk")
 	}
+	walFlushMs := float64(time.Since(walFlushStart).Nanoseconds()) / 1e6
+	monitor.DecideProposalStepSeconds.WithLabelValues("wal_flush_sync").Observe(walFlushMs / 1000)
 
-	// Make proposal
+	// Make proposal — block.Hash() triggers Merkle tree computation; can be non-trivial.
 	propBlockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID, block.Header.Time)
 	p := proposal.ToProto()
+
+	signStart := time.Now()
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, p); err == nil {
+		signMs := float64(time.Since(signStart).Nanoseconds()) / 1e6
+		monitor.DecideProposalStepSeconds.WithLabelValues("sign_proposal").Observe(signMs / 1000)
 		proposal.Signature = p.Signature
 
 		// send proposal and block parts on internal msg queue
@@ -1276,6 +1289,8 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 
 		cs.Logger.Debug("Signed proposal", "height", height, "round", round, "proposal", proposal)
 	} else if !cs.replayMode {
+		signMs := float64(time.Since(signStart).Nanoseconds()) / 1e6
+		monitor.DecideProposalStepSeconds.WithLabelValues("sign_proposal").Observe(signMs / 1000)
 		cs.Logger.Error("Propose step; failed signing proposal", "height", height, "round", round, "err", err)
 	}
 

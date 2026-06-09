@@ -2,9 +2,12 @@ package merkle
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"hash"
+	"runtime"
+	"sync"
 
 	cmtcrypto "github.com/cometbft/cometbft/api/cometbft/crypto/v1"
 	"github.com/cometbft/cometbft/crypto/tmhash"
@@ -73,6 +76,27 @@ func ProofsFromByteSlices(items [][]byte) (rootHash []byte, proofs []*Proof) {
 	}
 	return rootHash, proofs
 }
+
+// ProofsFromByteSlicesParallel computes the same Merkle root and inclusion
+// proofs as ProofsFromByteSlices, but parallelizes large subtrees and proof
+// flattening up to the current GOMAXPROCS budget.
+func ProofsFromByteSlicesParallel(items [][]byte) (rootHash []byte, proofs []*Proof) {
+	if len(items) < proofsFromByteSlicesParallelMinSize {
+		return ProofsFromByteSlices(items)
+	}
+
+	parallelBudget := int64(runtime.GOMAXPROCS(0) - 1)
+	if parallelBudget <= 0 {
+		return ProofsFromByteSlices(items)
+	}
+
+	trails, rootSPN := trailsFromByteSlicesParallel(items, &parallelBudget)
+	rootHash = rootSPN.Hash
+	proofs = proofsFromTrailsParallel(trails, len(items))
+	return rootHash, proofs
+}
+
+const proofsFromByteSlicesParallelMinSize = 32
 
 // Verify that the Proof proves the root hash.
 // Check sp.Index/sp.Total manually if needed.
@@ -272,6 +296,10 @@ func trailsFromByteSlices(items [][]byte) (trails []*ProofNode, root *ProofNode)
 	return trailsFromByteSlicesInternal(tmhash.New(), items)
 }
 
+func trailsFromByteSlicesParallel(items [][]byte, parallelBudget *int64) (trails []*ProofNode, root *ProofNode) {
+	return trailsFromByteSlicesInternalParallel(sha256.New(), items, parallelBudget)
+}
+
 func trailsFromByteSlicesInternal(hash hash.Hash, items [][]byte) (trails []*ProofNode, root *ProofNode) {
 	// Recursive impl.
 	switch len(items) {
@@ -292,4 +320,76 @@ func trailsFromByteSlicesInternal(hash hash.Hash, items [][]byte) (trails []*Pro
 		rightRoot.Left = leftRoot
 		return append(lefts, rights...), root
 	}
+}
+
+func trailsFromByteSlicesInternalParallel(hash hash.Hash, items [][]byte, parallelBudget *int64) (trails []*ProofNode, root *ProofNode) {
+	switch len(items) {
+	case 0:
+		return []*ProofNode{}, &ProofNode{emptyHash(), nil, nil, nil}
+	case 1:
+		trail := &ProofNode{leafHashOpt(hash, items[0]), nil, nil, nil}
+		return []*ProofNode{trail}, trail
+	default:
+		if len(items) < proofsFromByteSlicesParallelMinSize || !consumeParallelBudget(parallelBudget) {
+			return trailsFromByteSlicesInternal(hash, items)
+		}
+
+		k := getSplitPoint(int64(len(items)))
+		type trailsResult struct {
+			trails []*ProofNode
+			root   *ProofNode
+		}
+		leftCh := make(chan trailsResult, 1)
+		go func() {
+			lefts, leftRoot := trailsFromByteSlicesInternalParallel(sha256.New(), items[:k], parallelBudget)
+			leftCh <- trailsResult{trails: lefts, root: leftRoot}
+		}()
+
+		rights, rightRoot := trailsFromByteSlicesInternalParallel(hash, items[k:], parallelBudget)
+		left := <-leftCh
+
+		rootHash := innerHashOpt(hash, left.root.Hash, rightRoot.Hash)
+		root := &ProofNode{rootHash, nil, nil, nil}
+		left.root.Parent = root
+		left.root.Right = rightRoot
+		rightRoot.Parent = root
+		rightRoot.Left = left.root
+		return append(left.trails, rights...), root
+	}
+}
+
+func proofsFromTrailsParallel(trails []*ProofNode, total int) []*Proof {
+	proofs := make([]*Proof, len(trails))
+	if len(trails) == 0 {
+		return proofs
+	}
+
+	workers := runtime.GOMAXPROCS(0)
+	if workers > len(trails) {
+		workers = len(trails)
+	}
+
+	chunk := (len(trails) + workers - 1) / workers
+	var wg sync.WaitGroup
+	for start := 0; start < len(trails); start += chunk {
+		end := start + chunk
+		if end > len(trails) {
+			end = len(trails)
+		}
+
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+			for i := start; i < end; i++ {
+				proofs[i] = &Proof{
+					Total:    int64(total),
+					Index:    int64(i),
+					LeafHash: trails[i].Hash,
+					Aunts:    trails[i].FlattenAunts(),
+				}
+			}
+		}(start, end)
+	}
+	wg.Wait()
+	return proofs
 }

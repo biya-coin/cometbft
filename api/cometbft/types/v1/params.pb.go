@@ -136,6 +136,10 @@ type BlockParams struct {
 	//
 	// Must be greater or equal to -1. If set to -1, no limit is enforced.
 	MaxGas int64 `protobuf:"varint,2,opt,name=max_gas,json=maxGas,proto3" json:"max_gas,omitempty"`
+	// Maximum number of transactions included in a block.
+	//
+	// Must be greater or equal to -1. If set to -1, no limit is enforced.
+	MaxTxs int64 `protobuf:"varint,4,opt,name=max_txs,json=maxTxs,proto3" json:"max_txs,omitempty"`
 }
 
 func (m *BlockParams) Reset()         { *m = BlockParams{} }
@@ -181,6 +185,13 @@ func (m *BlockParams) GetMaxBytes() int64 {
 func (m *BlockParams) GetMaxGas() int64 {
 	if m != nil {
 		return m.MaxGas
+	}
+	return 0
+}
+
+func (m *BlockParams) GetMaxTxs() int64 {
+	if m != nil {
+		return m.MaxTxs
 	}
 	return 0
 }
@@ -360,6 +371,7 @@ func (m *VersionParams) GetApp() uint64 {
 type HashedParams struct {
 	BlockMaxBytes int64 `protobuf:"varint,1,opt,name=block_max_bytes,json=blockMaxBytes,proto3" json:"block_max_bytes,omitempty"`
 	BlockMaxGas   int64 `protobuf:"varint,2,opt,name=block_max_gas,json=blockMaxGas,proto3" json:"block_max_gas,omitempty"`
+	BlockMaxTxs   int64 `protobuf:"varint,3,opt,name=block_max_txs,json=blockMaxTxs,proto3" json:"block_max_txs,omitempty"`
 }
 
 func (m *HashedParams) Reset()         { *m = HashedParams{} }
@@ -405,6 +417,13 @@ func (m *HashedParams) GetBlockMaxBytes() int64 {
 func (m *HashedParams) GetBlockMaxGas() int64 {
 	if m != nil {
 		return m.BlockMaxGas
+	}
+	return 0
+}
+
+func (m *HashedParams) GetBlockMaxTxs() int64 {
+	if m != nil {
+		return m.BlockMaxTxs
 	}
 	return 0
 }
@@ -730,6 +749,9 @@ func (this *BlockParams) Equal(that interface{}) bool {
 	if this.MaxGas != that1.MaxGas {
 		return false
 	}
+	if this.MaxTxs != that1.MaxTxs {
+		return false
+	}
 	return true
 }
 func (this *EvidenceParams) Equal(that interface{}) bool {
@@ -838,6 +860,9 @@ func (this *HashedParams) Equal(that interface{}) bool {
 		return false
 	}
 	if this.BlockMaxGas != that1.BlockMaxGas {
+		return false
+	}
+	if this.BlockMaxTxs != that1.BlockMaxTxs {
 		return false
 	}
 	return true
@@ -1059,6 +1084,11 @@ func (m *BlockParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.MaxTxs != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.MaxTxs))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.MaxGas != 0 {
 		i = encodeVarintParams(dAtA, i, uint64(m.MaxGas))
 		i--
@@ -1193,6 +1223,11 @@ func (m *HashedParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.BlockMaxTxs != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.BlockMaxTxs))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.BlockMaxGas != 0 {
 		i = encodeVarintParams(dAtA, i, uint64(m.BlockMaxGas))
 		i--
@@ -1476,6 +1511,9 @@ func (m *BlockParams) Size() (n int) {
 	if m.MaxGas != 0 {
 		n += 1 + sovParams(uint64(m.MaxGas))
 	}
+	if m.MaxTxs != 0 {
+		n += 1 + sovParams(uint64(m.MaxTxs))
+	}
 	return n
 }
 
@@ -1534,6 +1572,9 @@ func (m *HashedParams) Size() (n int) {
 	}
 	if m.BlockMaxGas != 0 {
 		n += 1 + sovParams(uint64(m.BlockMaxGas))
+	}
+	if m.BlockMaxTxs != 0 {
+		n += 1 + sovParams(uint64(m.BlockMaxTxs))
 	}
 	return n
 }
@@ -1959,6 +2000,25 @@ func (m *BlockParams) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxTxs", wireType)
+			}
+			m.MaxTxs = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MaxTxs |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipParams(dAtA[iNdEx:])
@@ -2315,6 +2375,25 @@ func (m *HashedParams) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.BlockMaxGas |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockMaxTxs", wireType)
+			}
+			m.BlockMaxTxs = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockMaxTxs |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

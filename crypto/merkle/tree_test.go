@@ -2,6 +2,7 @@ package merkle
 
 import (
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -109,6 +110,41 @@ func TestHashAlternatives(t *testing.T) {
 	rootHash1 := HashFromByteSlicesIterative(items)
 	rootHash2 := HashFromByteSlices(items)
 	require.Equal(t, rootHash1, rootHash2, "Unmatched root hashes: %X vs %X", rootHash1, rootHash2)
+}
+
+func TestHashFromByteSlicesParallel(t *testing.T) {
+	for _, total := range []int{0, 1, 2, 5, 100, 1023, 1024, 1025, 10_000, 20_000} {
+		t.Run(fmt.Sprintf("total_%d", total), func(t *testing.T) {
+			items := make([][]byte, total)
+			for i := 0; i < total; i++ {
+				items[i] = testItem(cmtrand.Bytes(tmhash.Size))
+			}
+
+			rootHash1 := HashFromByteSlices(items)
+			rootHash2 := HashFromByteSlicesParallel(items)
+			require.Equal(t, rootHash1, rootHash2, "Unmatched root hashes: %X vs %X", rootHash1, rootHash2)
+		})
+	}
+}
+
+func TestProofsFromByteSlicesParallel(t *testing.T) {
+	for _, total := range []int{0, 1, 2, 5, 31, 32, 96, 100, 1023, 1024, 1025, 10_000, 20_000} {
+		t.Run(fmt.Sprintf("total_%d", total), func(t *testing.T) {
+			items := make([][]byte, total)
+			for i := 0; i < total; i++ {
+				items[i] = testItem(cmtrand.Bytes(tmhash.Size))
+			}
+
+			rootHash1, proofs1 := ProofsFromByteSlices(items)
+			rootHash2, proofs2 := ProofsFromByteSlicesParallel(items)
+			require.Equal(t, rootHash1, rootHash2, "Unmatched root hashes: %X vs %X", rootHash1, rootHash2)
+			require.Equal(t, proofs1, proofs2)
+
+			for i, item := range items {
+				require.NoError(t, proofs2[i].Verify(rootHash2, item))
+			}
+		})
+	}
 }
 
 func BenchmarkHashAlternatives(b *testing.B) {
