@@ -30,6 +30,30 @@ var (
 		Help:      "Number of transactions committed per block.",
 		Buckets:   []float64{10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000},
 	})
+
+	DoPrevoteDurationSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "consensus",
+		Name:      "do_prevote_duration_seconds",
+		Help:      "Duration of doPrevote during the propose phase.",
+		Buckets:   []float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+	})
+
+	DoPrevoteValidateBlockDurationSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "consensus",
+		Name:      "do_prevote_validate_block_duration_seconds",
+		Help:      "Duration of ValidateBlock inside doPrevote.",
+		Buckets:   []float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+	})
+
+	EnterPrecommitDurationSeconds = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: "consensus",
+		Name:      "enter_precommit_duration_seconds",
+		Help:      "Duration of enterPrecommit during the prevote phase.",
+		Buckets:   []float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+	})
 )
 
 // ── PrepareProposal / DecideProposal（秒） ───────────────────────────────────

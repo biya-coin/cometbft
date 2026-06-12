@@ -1387,7 +1387,9 @@ func (cs *State) enterPrevote(height int64, round int32) {
 	logger.Debug("Entering prevote step", "current", log.NewLazySprintf("%v/%v/%v", cs.Height, cs.Round, cs.Step))
 
 	// Sign and broadcast vote as necessary
+	start := cmttime.Now()
 	cs.doPrevote(height, round)
+	monitor.DoPrevoteDurationSeconds.Observe(cmttime.Since(start).Seconds())
 
 	// Once `addVote` hits any +2/3 prevotes, we will go to PrevoteWait
 	// (so we have more time to try and collect +2/3 prevotes for a single block)
@@ -1457,7 +1459,9 @@ func (cs *State) defaultDoPrevote(height int64, round int32) {
 	}
 
 	// Validate proposal block, from consensus' perspective
+	validateBlockStart := cmttime.Now()
 	err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock)
+	monitor.DoPrevoteValidateBlockDurationSeconds.Observe(cmttime.Since(validateBlockStart).Seconds())
 	if err != nil {
 		// ProposalBlock is invalid, prevote nil.
 		logger.Error("prevote step: consensus deems this block invalid; prevoting nil",
@@ -1643,6 +1647,11 @@ func (cs *State) enterPrecommit(height int64, round int32) {
 		)
 		return
 	}
+
+	enterPrecommitStart := cmttime.Now()
+	defer func() {
+		monitor.EnterPrecommitDurationSeconds.Observe(cmttime.Since(enterPrecommitStart).Seconds())
+	}()
 
 	logger.Debug("Entering precommit step", "current", log.NewLazySprintf("%v/%v/%v", cs.Height, cs.Round, cs.Step))
 
