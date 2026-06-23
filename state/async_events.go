@@ -9,7 +9,7 @@ import (
 	"github.com/cometbft/cometbft/types"
 )
 
-// async_events: BIYA perf lever (env-gated by BIYA_ASYNC_FIRE_EVENTS=1).
+// async_events: BIYA perf lever (DEFAULT ON; set BIYA_ASYNC_FIRE_EVENTS=0 to disable).
 //
 // fireEvents runs at the very end of applyBlock, AFTER Commit + store.Save. It is
 // pure observability — it only publishes to the eventBus (websocket / KV tx-indexer
@@ -36,13 +36,15 @@ import (
 // observability subscribers (websocket, KV indexer) but a subscriber that correlates RPC
 // consensus height with event arrival must tolerate the event lagging the height.
 //
-// Default (env unset) leaves blockExec.asyncFire nil → byte-identical to upstream.
+// Default (env unset) = ON. Set BIYA_ASYNC_FIRE_EVENTS=0 to select the legacy
+// synchronous path (A/B sync arm / emergency rollback) — no rebuild required.
 
 const asyncFireEventsBuf = 8
 
-// asyncFireEventsEnabled reports whether the env gate is on. Read once at construction.
+// asyncFireEventsEnabled reports whether async fireEvents is on. DEFAULT ON; an explicit
+// BIYA_ASYNC_FIRE_EVENTS=0 disables it (A/B sync arm / emergency rollback). Read once at construction.
 func asyncFireEventsEnabled() bool {
-	return os.Getenv("BIYA_ASYNC_FIRE_EVENTS") == "1"
+	return os.Getenv("BIYA_ASYNC_FIRE_EVENTS") != "0"
 }
 
 type fireEventsJob struct {
