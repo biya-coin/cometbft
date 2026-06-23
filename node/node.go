@@ -663,6 +663,11 @@ func (n *Node) OnStop() {
 	if err := n.pruner.Stop(); err != nil {
 		n.Logger.Error("Error stopping the pruning service", "err", err)
 	}
+	// BIYA: drain the async fireEvents worker (if enabled) BEFORE stopping the eventBus,
+	// so buffered block events are flushed to subscribers rather than dropped.
+	if n.consensusState != nil {
+		n.consensusState.StopBlockExecutor()
+	}
 	if err := n.eventBus.Stop(); err != nil {
 		n.Logger.Error("Error closing eventBus", "err", err)
 	}

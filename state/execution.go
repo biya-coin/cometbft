@@ -46,6 +46,10 @@ type BlockExecutor struct {
 	logger log.Logger
 
 	metrics *Metrics
+
+	// asyncFire, when non-nil (BIYA_ASYNC_FIRE_EVENTS=1), moves the post-commit
+	// fireEvents off the consensus-critical applyBlock path onto an ordered worker.
+	asyncFire *asyncEventFirer
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -88,7 +92,20 @@ func NewBlockExecutor(
 		option(res)
 	}
 
+	if asyncFireEventsEnabled() {
+		res.asyncFire = newAsyncEventFirer()
+		logger.Info("BIYA: async fireEvents ENABLED (off-critical-path event publishing)")
+	}
+
 	return res
+}
+
+// Stop drains the async event worker (if enabled) so a graceful shutdown does not
+// lose the last block's events. No-op when async fireEvents is disabled.
+func (blockExec *BlockExecutor) Stop() {
+	if blockExec.asyncFire != nil {
+		blockExec.asyncFire.stop()
+	}
 }
 
 func (blockExec *BlockExecutor) Store() Store {
@@ -334,8 +351,22 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events won't be fired during replay
-	fireEvents(blockExec.logger, blockExec.eventBus, block, blockID, abciResponse, validatorUpdates)
-	abT7 := time.Now() // ab7: fireEvents done
+	// BIYA: when async fireEvents is enabled, enqueue to the ordered worker so the
+	// ~76-83ms publish cost leaves the consensus-critical path (next height starts
+	// sooner). enqueue blocks only under subscriber back-pressure (≈ sync behavior).
+	if blockExec.asyncFire != nil {
+		blockExec.asyncFire.enqueue(fireEventsJob{
+			logger:           blockExec.logger,
+			eventBus:         blockExec.eventBus,
+			block:            block,
+			blockID:          blockID,
+			abciResponse:     abciResponse,
+			validatorUpdates: validatorUpdates,
+		})
+	} else {
+		fireEvents(blockExec.logger, blockExec.eventBus, block, blockID, abciResponse, validatorUpdates)
+	}
+	abT7 := time.Now() // ab7: fireEvents done (enqueue only when async)
 
 	// --- Loki: emit applyBlock sub-step timing ---
 	monitor.LogApplyBlockSubstep(block.Height, abT0, abT1, abT2, abT3, abT4, abT5, abT6, abT7)

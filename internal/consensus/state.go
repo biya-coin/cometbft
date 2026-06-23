@@ -223,6 +223,13 @@ func (cs *State) SetEventBus(b *types.EventBus) {
 	cs.blockExec.SetEventBus(b)
 }
 
+// StopBlockExecutor drains the block executor's async event worker (if enabled via
+// BIYA_ASYNC_FIRE_EVENTS) so buffered events are flushed before the eventBus is stopped.
+// No-op when async fireEvents is disabled.
+func (cs *State) StopBlockExecutor() {
+	cs.blockExec.Stop()
+}
+
 // StateMetrics sets the metrics.
 func StateMetrics(metrics *Metrics) StateOption {
 	return func(cs *State) { cs.metrics = metrics }
